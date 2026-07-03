@@ -25,6 +25,7 @@ A REST API for managing projects and tasks with JWT authentication and role-base
 | ORM | SQLAlchemy 2.0 (async) + asyncpg |
 | Migrations | Alembic |
 | Auth | PyJWT + passlib (bcrypt) |
+| Cache / Limits | Redis (redis.asyncio) |
 | Validation | Pydantic v2 |
 | Runtime | Uvicorn |
 | Containerization | Docker + Docker Compose |
@@ -38,7 +39,7 @@ A REST API for managing projects and tasks with JWT authentication and role-base
 ├── app/
 │   ├── main.py                 # app factory, middleware, exception handlers
 │   └── api/
-│       ├── dependencies.py     # DI: session, services, get_current_user
+│       ├── dependencies/       # DI: db_dependencies, redis, identity
 │       └── v1/
 │           ├── router.py
 │           └── routers/        # auth, projects, tasks, frontend
@@ -120,6 +121,16 @@ ACCESS_SECRET_KEY=your_64_character_access_secret_here
 REFRESH_SECRET_KEY=your_64_character_refresh_secret_here
 ALGORITHM=HS256
 
+# Redis Cache / Rate Limiting
+REDIS_URL=redis://redis:6379/0
+# TEST_REDIS_URL=redis://localhost:6379/0
+
+# Email Sending (SMTP)
+SMTP_LOGIN=your.email@gmail.com
+SMTP_KEY=your_app_password
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=465
+
 # Test DB Credentials (for docker-compose)
 POSTGRES_TEST_USER=my_test_user
 POSTGRES_TEST_PASSWORD=my_test_password
@@ -170,15 +181,17 @@ Swagger UI: `http://localhost:8000/docs` (only when `ENV=development`)
 
 #### Security
 - [ ] Token family — detect refresh token reuse and invalidate the entire chain
-- [ ] Rate limiting on auth endpoints
+- [x] Rate limiting on auth endpoints
+- [x] Redis-based Access Token Blacklist (Logout mechanism)
 - [ ] CORS hardening and close PostgreSQL port in production
+- [ ] Coockies httponly, secure, same-site settings for tokens storing.
 
 #### Features
 - [ ] User CRUD (profile update, account management)
-- [ ] Email verification on registration
+- [x] Email verification on registration (OTP via SMTP)
 - [ ] Task priority and sorting
 - [ ] Extended project member management (update roles, remove members)
 
 #### Infrastructure
-- [ ] Redis caching for read-heavy endpoints
+- [x] Redis for Rate Limiting, OTP storage, and Token Blacklisting
 - [ ] Production deployment and infrastructure validation

@@ -28,6 +28,9 @@ class DataValidationError(AppBaseError):
 class GoneError(AppBaseError):
     def __init__(self, status_code=410, detail="Resource is not available!"):
         super().__init__(status_code, detail)
+class ToManyRequestsError(AppBaseError):
+    def __init__(self, status_code=429, detail="To many requests!"):
+        super().__init__(status_code, detail)
 
 class TokenError(AppBaseError):
     def __init__(

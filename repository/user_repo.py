@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
-from sqlalchemy import select
+from sqlalchemy import select, delete
 import uuid
 
 from database.db_model import UserModel, RefreshTokenModel
@@ -19,7 +19,12 @@ class UserRepository(BaseRepository[UserModel]):
     
     async def get_user_by_id(self,user_id:str) -> Optional[UserModel]:
         return await self.get_by(public_id = user_id)
-    
+
+    async def check_if_user_exists(self, email:str) -> bool:
+        user_id = await self.get_columns_by("public_id", email=email)
+        return user_id is not None
+        
+
 class RefreshRepository(BaseRepository[RefreshTokenModel]):
     def __init__(self, session: AsyncSession):
         super().__init__(RefreshTokenModel, session)
@@ -34,7 +39,20 @@ class RefreshRepository(BaseRepository[RefreshTokenModel]):
             token_public_id=token_public_id
             )
     
-    
+    async def check_if_token_exists(
+                                    self,
+                                    token_public_id:uuid.UUID
+                                    ) -> bool:
+        token_id = await self.get_columns_by("token_public_id", token_public_id=token_public_id)
+        return token_id is not None
+
+    async def delete_token_by_id(
+                                self,
+                                token_public_id:uuid.UUID,
+                                ) -> None:
+        await self.session.execute(delete(RefreshTokenModel)
+        .where(RefreshTokenModel.token_public_id == token_public_id))
+
 
     
     

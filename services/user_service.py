@@ -1,16 +1,16 @@
 import uuid6
-from datetime import datetime, timezone
+import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from typing import Optional
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import ValidationError
 
+from services.redis_services import RedisServices
 from repository.user_repo import UserRepository,RefreshRepository
-from schemas.login_schemas import UserPostModel
+from schemas.login_schemas import UserPostModel, UserWithOtp
 from database.db_model import UserModel, RefreshTokenModel
-from core.security import (
-    hash_data, 
+from core.security import ( 
     verify_hashes, 
     generate_refresh_token_data,
     generate_refresh_token, 
@@ -30,20 +30,34 @@ from core.exceptions import (
 class AuthServices:
     def __init__(
                 self, 
-                 session:AsyncSession,
-                 ):
+                session:AsyncSession,
+                client:redis.Redis
+                ):
         self.session = session
         self.user_repo = UserRepository(session)
         self.refresh_repo = RefreshRepository(session)
-        
-    async def add_new_user(self,user_post_data:UserPostModel) -> None:
-        hashed_password = hash_data(user_post_data.password)
+        self.redis_client = RedisServices(client)
+
+    async def start_user_registration(
+                                        self,
+                                        user_data: UserPostModel,
+                                    ) -> int:
+        user_exists = await self.user_repo.check_if_user_exists(user_data.email)
+        if user_exists:
+            raise UserAlreadyExistsError()
+        return await self.redis_client.add_user_otp(user_data)
+
+    async def verify_user_registration(self, email:str, otp: str) -> None:
+        user_json_data = await self.redis_client.get_user_registration_data(email)
+        user_data = UserWithOtp.model_validate_json(user_json_data)
+        if otp != user_data.otp:
+            raise AuthFailedError()
+        await self.redis_client.delete_otp_data(email)
         public_user_id = uuid6.uuid7()
-        
         new_user = UserModel(
             public_id = public_user_id,
-            email = user_post_data.email,
-            password = hashed_password,
+            email = email,
+            password = user_data.password,
         )
         self.user_repo.add(new_user)
         try:    
@@ -118,10 +132,32 @@ class AuthServices:
                 "token_type": "bearer"
                 }
     
-    async def get_user_credentials(self,token:str):
-        user_public_id = decode_access_token(token)
-        user = await self.user_repo.get_user_by_id(user_public_id)
+    async def get_user_credentials(self, token:str):
+        is_banned = await self.redis_client.check_banned_tokens(token)
+        if is_banned:
+            raise TokenError()
+        user_data = decode_access_token(token)
+        user = await self.user_repo.get_user_by_id(user_data["user_public_id"])
         if not user:
             raise TokenError()
         return user
     
+    async def user_logout_process(
+                                    self,
+                                    user_access_token:str,
+                                    user_refresh_token:str
+                                    ) -> None:
+        access_token_data = decode_access_token(user_access_token)
+        refresh_token_data =  decode_refresh_token(user_refresh_token)
+        access_user_public_id = access_token_data["user_public_id"]
+        refresh_user_public_id = refresh_token_data["user_public_id"]
+        refresh_token_id = refresh_token_data["token_public_id"]
+        if access_user_public_id != refresh_user_public_id:
+            raise TokenError()
+        token_exp = access_token_data["token_exparation"]
+        await self.redis_client.save_banned_access_token(user_access_token, token_exp)
+        token_exists = await self.refresh_repo.check_if_token_exists(refresh_token_id)
+        if not token_exists:
+            raise TokenError()
+        await self.refresh_repo.delete_token_by_id(refresh_token_id)
+        await self.session.commit()

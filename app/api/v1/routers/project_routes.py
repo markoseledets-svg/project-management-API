@@ -3,7 +3,7 @@ from typing import List
 import uuid
 
 from database.db_model import ProjectStatus
-from app.api.dependencies import ProjectServiceDep, get_current_user
+from app.api.dependencies.db_dependencies import ProjectServiceDep, get_current_user
 from schemas.project_schemas import ProjectWithRoleGetModel, ProjectPostModel, ProjectGetModel, ProjectUpdateModel, PostNewRelation
 from schemas.login_schemas import UserGetModel
 

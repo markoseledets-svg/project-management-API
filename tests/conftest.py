@@ -3,24 +3,43 @@ from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 import pytest
 from httpx import AsyncClient, ASGITransport
+from fakeredis import FakeAsyncRedis
+from unittest.mock import patch
+import json
 
 from database.db_model import Base
-from app.api.dependencies import get_db
+from app.api.dependencies.db_dependencies import get_db
+from app.api.dependencies.redis_dependencies import get_redis
 from app.main import app
 load_dotenv()
 
 DB_URL = os.getenv("TEST_DATABASE_URL")
 
+@pytest.fixture(scope='session')
+async def fake_redis():
+    fake_redis_client = FakeAsyncRedis(decode_responses=True)
+    yield fake_redis_client
+    await fake_redis_client.aclose()
 
+@pytest.fixture(autouse=True)
+def mock_send_email():
+    with patch("app.api.v1.routers.auth_routes.send_email") as mock:
+        yield mock
 
 @pytest.fixture(scope="session")
-async def test_client():
+async def test_client(fake_redis):
     engine = create_async_engine(DB_URL)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
     async def get_test_db():
         async with AsyncSession(engine, ) as session:
             yield session
+    
+    async def get_fake_redis():
+        yield fake_redis
+
+    app.dependency_overrides[get_redis] = get_fake_redis
     app.dependency_overrides[get_db] = get_test_db
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -32,9 +51,17 @@ async def test_client():
     app.dependency_overrides.clear()
 
 @pytest.fixture(scope="session")
-async def test_user(test_client):
+async def test_user(test_client, fake_redis):
     user_credentials = {"email":"test@gmail.com", "password":"password123"}
     await test_client.post("/api/v1/auth/register", json=user_credentials)
+    redis_data_str = await fake_redis.get("otp:users:test@gmail.com")
+    redis_data = json.loads(redis_data_str)
+    correct_otp = redis_data["otp"]
+    code_payload = {"email":"test@gmail.com", "otp":correct_otp}
+    await test_client.post(
+        "/api/v1/auth/verify-otp",
+        json=code_payload
+    )
     return user_credentials
 
 @pytest.fixture(scope="session")

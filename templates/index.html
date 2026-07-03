@@ -384,7 +384,7 @@
             <p id="auth-subtitle">Sign in to your account to continue</p>
         </div>
 
-        <div class="auth-tabs">
+        <div class="auth-tabs" id="auth-tabs">
             <div class="tab-slider" id="tab-slider"></div>
             <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">Sign In</div>
             <div class="auth-tab" id="tab-register" onclick="switchTab('register')">Sign Up</div>
@@ -420,6 +420,24 @@
                 <span class="btn-text">Sign In</span>
                 <span class="spinner"></span>
             </button>
+        </form>
+
+        <form id="otp-form" onsubmit="handleOTP(event)" style="display: none;" autocomplete="off">
+            <div class="form-group">
+                <label class="form-label" for="otp">Verification Code</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔑</span>
+                    <input type="text" id="otp" class="form-input" required
+                           placeholder="6-digit code" pattern="\d{6}" maxlength="6" autocomplete="off" />
+                </div>
+            </div>
+            <button type="submit" class="btn-submit" id="otp-btn">
+                <span class="btn-text">Verify Account</span>
+                <span class="spinner"></span>
+            </button>
+            <div style="text-align: center; margin-top: 1rem;">
+                <a href="#" onclick="switchTab('register'); document.getElementById('otp-form').style.display='none'; document.getElementById('auth-form').style.display='block'; document.getElementById('auth-tabs').style.display='flex'; return false;" style="color: var(--text-muted); font-size: 0.8rem; text-decoration: none;">Back to Sign Up</a>
+            </div>
         </form>
 
         <div class="auth-message" id="auth-message"></div>
@@ -567,8 +585,13 @@
                 });
 
                 if (res.ok) {
-                    showMessage('✓ Account created! Please sign in.', 'success');
-                    setTimeout(() => switchTab('login'), 1500);
+                    showMessage('✓ Code sent to your email.', 'success');
+                    document.getElementById('auth-form').style.display = 'none';
+                    document.getElementById('auth-tabs').style.display = 'none';
+                    document.getElementById('otp-form').style.display = 'block';
+                    document.getElementById('auth-title').textContent = 'Verify Email';
+                    document.getElementById('auth-subtitle').textContent = 'Enter the 6-digit code sent to your email';
+                    window.pendingEmail = email;
                 } else {
                     const err = await res.json();
                     const msg = Array.isArray(err.detail) ? err.detail[0].msg : err.detail;
@@ -592,6 +615,43 @@
         const el = document.getElementById('auth-message');
         el.textContent = '';
         el.className = 'auth-message';
+    }
+
+    async function handleOTP(e) {
+        e.preventDefault();
+        const otp = document.getElementById('otp').value.trim();
+        const btn = document.getElementById('otp-btn');
+
+        clearMessage();
+        btn.classList.add('loading');
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(API_BASE + '/auth/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: window.pendingEmail, otp: parseInt(otp, 10) })
+            });
+
+            if (res.ok) {
+                showMessage('✓ Account verified! Please sign in.', 'success');
+                setTimeout(() => {
+                    document.getElementById('otp-form').style.display = 'none';
+                    document.getElementById('auth-form').style.display = 'block';
+                    document.getElementById('auth-tabs').style.display = 'flex';
+                    switchTab('login');
+                }, 1500);
+            } else {
+                const err = await res.json();
+                const msg = err.detail && Array.isArray(err.detail) ? err.detail[0].msg : err.detail;
+                throw new Error(msg || 'Verification failed');
+            }
+        } catch (error) {
+            showMessage(error.message, 'error');
+        } finally {
+            btn.classList.remove('loading');
+            btn.disabled = false;
+        }
     }
 </script>
 </body>

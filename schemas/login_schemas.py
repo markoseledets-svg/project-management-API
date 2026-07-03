@@ -13,3 +13,8 @@ class UserGetModel(UserBaseModel):
 class UserPostModel(UserBaseModel):
     password: str = Field(min_length=8, max_length=64)
 
+class UserWithOtp(UserPostModel):
+    otp: int = Field(ge=100000, le=999999)
+
+class VerifyOTPModel(UserBaseModel):
+    otp: int = Field(ge=100000, le=999999)

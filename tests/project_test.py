@@ -36,12 +36,7 @@ async def test_project_update(test_client, auth_headers, test_project_id):
 
 @pytest.mark.asyncio
 async def test_user_add_to_project(test_client, auth_headers, test_project_id):
-    new_test_user = {"email":"project@editor.add", "password":"editor1234"}
-    new_relation_data = {"email":"project@editor.add", "user_role":"admin"}
-    await test_client.post(
-        "/api/v1/auth/register",
-        json=new_test_user
-    )
+    new_relation_data = {"email":"test1@gmail.com", "user_role":"editor"}
     post_relation_request = await test_client.post(
         f"/api/v1/projects/add-user/{test_project_id}",
         json=new_relation_data,
@@ -88,5 +83,3 @@ async def test_deleted_project_error(test_client, auth_headers, test_project_id)
         headers=auth_headers
     )
     assert response.status_code == 410
-
-    

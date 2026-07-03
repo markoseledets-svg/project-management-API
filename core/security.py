@@ -72,9 +72,13 @@ def decode_jwt(token:str, secret_key) -> dict:
 def decode_access_token(token: str) -> uuid6.UUID:
     payload = decode_jwt(token, ACCESS_SECRET_KEY)
     user_public_id = payload.get("sub")
+    token_exp = payload.get("exp")
     if not user_public_id:
         raise TokenError()
-    return uuid6.UUID(user_public_id)
+    return {
+        "user_public_id":uuid6.UUID(user_public_id), 
+        "token_exparation":token_exp
+    }
 
 def decode_refresh_token(token: str) -> dict:
     payload = decode_jwt(token, REFRESH_SECRET_KEY)

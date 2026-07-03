@@ -3,7 +3,7 @@ import uuid
 
 from schemas.task_schemas import PostTaskModel,UpdateTaskModel
 from schemas.login_schemas import UserGetModel
-from app.api.dependencies import get_current_user, TaskServiceDep
+from app.api.dependencies.db_dependencies import get_current_user, TaskServiceDep
 router = APIRouter(tags=["Tasks"])
 
 @router.post("/")

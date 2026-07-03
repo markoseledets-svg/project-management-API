@@ -5,6 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
+from redis.exceptions import RedisError
 
 from database.db_config import engine
 from app.api.v1 import router
@@ -38,13 +39,22 @@ app.add_middleware(
 
 @app.exception_handler(SQLAlchemyError)
 async def log_db_errors(request: Request, exc: SQLAlchemyError):
-    logger.error(f"Database error on path {request.method} {request.url.path}. error: {exc}")
+    logger.critical(f"Database error on path {request.method} {request.url.path}. error: {exc}")
 
     return JSONResponse(
-        status_code = 500,
-        content = {"message":"Ops, something went wrong."}
+        status_code = 503,
+        content = {"message":"Service is temporarily unavailable. Please try again later."}
     )
 
+@app.exception_handler(RedisError)
+async def log_redis_errors(request: Request, exc: RedisError):
+    logger.critical(f"Redis error on {request.method} {request.url.path}. error: {exc}")
+
+    return JSONResponse(
+        status_code = 503,
+        content = {"message":"Service is temporarily unavailable. Please try again later."}
+    )
+    
 @app.exception_handler(Exception)
 async def api_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unexpected error on {request.method} {request.url.path} error: {exc}")

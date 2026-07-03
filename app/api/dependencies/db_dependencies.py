@@ -1,8 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
-import os
-from dotenv import load_dotenv
 
 from database.db_config import engine
 from schemas.login_schemas import UserGetModel
@@ -10,6 +8,7 @@ from services.user_service import AuthServices
 from services.task_service import TaskService
 from services.project_services import ProjectService
 from typing import Annotated, Type, TypeVar, Callable, Any
+from app.api.dependencies.redis_dependencies import RedisClient
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth")
 
@@ -25,14 +24,18 @@ def get_service(service_class: Type[Any]) -> Callable:
         return service_class(db)
     return factory
 
-AuthServiceDep = Annotated[AuthServices, Depends(get_service(AuthServices))]
 TaskServiceDep = Annotated[TaskService, Depends(get_service(TaskService))]
 ProjectServiceDep = Annotated[ProjectService, Depends(get_service(ProjectService))]
 
+def get_auth_service(db:AnotatedSession, redis:RedisClient):
+    return AuthServices(db, redis)
+
+
+AuthServiceDep = Annotated[AuthServices, Depends(get_auth_service)]
+
 async def get_current_user(
-    db: AsyncSession = Depends(get_db),
+    auth_services: AuthServiceDep,
     token: str = Depends(oauth2_scheme),
     ) -> UserGetModel:
-    auth_service = AuthServices(db)
-    return await auth_service.get_user_credentials(token)
+    return await auth_services.get_user_credentials(token)
     

@@ -1180,7 +1180,14 @@ function toast(msg, type = 'success') {
     setTimeout(() => el.remove(), 3500);
 }
 
-function logout() {
+async function logout() {
+    try {
+        if (refreshToken) {
+            await apiPost('/auth/logout', { user_refresh_token: refreshToken });
+        }
+    } catch(e) {
+        console.error(e);
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('refresh_token');
     window.location.href = '/';

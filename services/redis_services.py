@@ -1,7 +1,7 @@
 from random import randint
 import redis.asyncio as redis
+from typing import Optional
 import time
-import random
 import json
 
 from core.exceptions import ToManyRequestsError, AuthFailedError
@@ -76,15 +76,18 @@ class RedisServices:
         key = f"tokens:banned:{user_token}"
         return await self.redis_client.exists(key)
     
-
-
-
-
-
+    async def save_token_data_for_retries(
+                                            self, 
+                                            refresh_token:str, 
+                                            payload:dict
+                                          ) -> None:
+        key =f"refresh-rotation:{refresh_token}"
+        json_payload = json.dumps(payload)
+        await self.redis_client.setex(key, 5, json_payload)
     
-
-
-
-
-
-
+    async def check_refresh_for_retries(self, refresh_token:str) -> Optional[dict]:
+        key =f"refresh-rotation:{refresh_token}"
+        user_data = await self.redis_client.get(key)
+        if user_data:
+            return json.loads(user_data)
+        return None

@@ -21,7 +21,7 @@ async def fake_redis():
     yield fake_redis_client
     await fake_redis_client.aclose()
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def mock_send_email():
     with patch("app.api.v1.routers.auth_routes.send_email") as mock:
         yield mock

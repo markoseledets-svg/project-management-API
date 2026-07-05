@@ -1,6 +1,7 @@
-import pytest
+from redis import asyncio
 import pytest
 import json
+import asyncio
 
 @pytest.mark.asyncio
 async def test_registration(test_client):
@@ -118,3 +119,38 @@ async def test_rate_limit(test_client):
         )
         statuses.append(response.status_code)
     assert statuses == [401, 401, 401, 401, 401, 429]
+
+@pytest.mark.asyncio
+async def test_token_retry_and_reuse(test_client):
+    user_login_data = {"username":"test1@gmail.com", "password":"password123"}
+    headers_request = await test_client.post(
+        "/api/v1/auth/",
+        data=user_login_data
+    )
+    assert headers_request.status_code == 200
+    token_data = headers_request.json()
+    body = {"refresh_token": token_data["refresh_token"]}
+
+    refresh_request = await test_client.post(
+            "/api/v1/auth/refresh",
+            json=body
+        )
+    assert refresh_request.status_code == 200
+    retry_request = await test_client.post(
+            "/api/v1/auth/refresh",
+            json=body
+        )
+    assert retry_request.status_code == 200
+    new_token_data = retry_request.json()
+    new_token_body =  {"refresh_token": new_token_data["refresh_token"]}
+    await asyncio.sleep(5)
+    reuse_request = await test_client.post(
+            "/api/v1/auth/refresh",
+            json=body
+        )
+    assert reuse_request.status_code == 401
+    family_banned_request = await test_client.post(
+            "/api/v1/auth/refresh",
+            json=new_token_body
+        )
+    assert family_banned_request.status_code == 401

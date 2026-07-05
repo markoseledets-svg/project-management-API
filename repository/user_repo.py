@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
-from sqlalchemy import select, delete
-import uuid
+from sqlalchemy import select, update
+import uuid6
 
 from database.db_model import UserModel, RefreshTokenModel
 from repository.base_repo import BaseRepository
@@ -29,10 +29,10 @@ class RefreshRepository(BaseRepository[RefreshTokenModel]):
     def __init__(self, session: AsyncSession):
         super().__init__(RefreshTokenModel, session)
     
-    async def get_current_token_reccord(
+    async def get_current_token_record(
                                         self, 
-                                        user_public_id:uuid.UUID,
-                                        token_public_id:uuid.UUID
+                                        user_public_id:uuid6.UUID,
+                                        token_public_id:uuid6.UUID
                                         ) -> RefreshTokenModel|None:
         return await self.get_by(
             user_public_id=user_public_id,
@@ -41,18 +41,26 @@ class RefreshRepository(BaseRepository[RefreshTokenModel]):
     
     async def check_if_token_exists(
                                     self,
-                                    token_public_id:uuid.UUID
+                                    token_public_id:uuid6.UUID
                                     ) -> bool:
         token_id = await self.get_columns_by("token_public_id", token_public_id=token_public_id)
         return token_id is not None
 
-    async def delete_token_by_id(
+    async def mark_used_token_by_id(
                                 self,
-                                token_public_id:uuid.UUID,
+                                token_public_id:uuid6.UUID,
                                 ) -> None:
-        await self.session.execute(delete(RefreshTokenModel)
-        .where(RefreshTokenModel.token_public_id == token_public_id))
-
-
+        await self.session.execute(update(RefreshTokenModel)
+        .where(RefreshTokenModel.token_public_id == token_public_id)
+        .values(is_used=True))
     
-    
+    async def invalidate_token_by_family(
+                                self,
+                                family_id:uuid6.UUID
+                                ) -> None:
+        await self.session.execute(
+            update(RefreshTokenModel)
+            .where(RefreshTokenModel.family_id == family_id)
+            .values(is_used=True)
+        )
+ 

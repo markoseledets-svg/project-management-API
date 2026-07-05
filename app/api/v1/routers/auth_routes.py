@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Request, Body, BackgroundTasks
+from typing import Annotated
+from fastapi import APIRouter, Depends, Request, Body, BackgroundTasks, Header
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.api.dependencies.db_dependencies import ( 
@@ -28,9 +29,9 @@ router = APIRouter(tags=["Login"])
 async def login_for_access_token(
                                 request:Request,
                                 auth_service: AuthServiceDep, 
-                                form_data: OAuth2PasswordRequestForm = Depends()
+                                form_data: OAuth2PasswordRequestForm = Depends(),
+                                user_agent: Annotated[str, Header(alias="User-Agent")] = "Unknown Device"
                                 ):
-    user_agent = request.headers.get("user-agent","Unknown Device")
     return await auth_service.user_login_process(user_agent,form_data)
 
 @router.post("/refresh", dependencies=[
@@ -38,9 +39,10 @@ async def login_for_access_token(
     ])
 async def refresh_access_token(
                                auth_service: AuthServiceDep, 
-                               refresh_token: str = Body(..., embed=True)
+                               refresh_token: str = Body(..., embed=True),
+                               user_agent: Annotated[str, Header(alias="User-Agent")] = "Unknown Device"
                                ):
-    return await auth_service.update_refresh_token(refresh_token)
+    return await auth_service.rotate_refresh_token(refresh_token, user_agent)
 
 @router.post("/register", dependencies=[
     Depends(rate_limit("auth-register-ip", 3600, 40, identity_from_ip)),

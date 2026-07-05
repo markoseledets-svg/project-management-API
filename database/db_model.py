@@ -1,7 +1,7 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 from sqlalchemy import DateTime
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List
 from enum import Enum
 import uuid
@@ -52,6 +52,12 @@ class RefreshTokenModel(Base):
                                                     DateTime(timezone=True), 
                                                     default=lambda: datetime.now(timezone.utc)
                                                 )
+    expired_at: Mapped[datetime] = mapped_column(
+                                                DateTime(timezone=True),
+                                                default= lambda: datetime.now(timezone.utc) + timedelta(days=14)
+                                                )
+    family_id: Mapped[uuid.UUID] = mapped_column(nullable=False, default=uuid6.uuid8)
+    is_used: Mapped[bool] = mapped_column(nullable=False, default=False)
     user_agent: Mapped[str] = mapped_column(nullable=True)
 
     user: Mapped["UserModel"] = relationship(back_populates="tokens")

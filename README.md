@@ -180,7 +180,8 @@ Swagger UI: `http://localhost:8000/docs` (only when `ENV=development`)
 ## Roadmap
 
 #### Security
-- [ ] Token family — detect refresh token reuse and invalidate the entire chain
+- [x] Token family — detect refresh token reuse and invalidate the entire chain
+- [x] Redis-based retry mechanism for token rotation to handle network glitches
 - [x] Rate limiting on auth endpoints
 - [x] Redis-based Access Token Blacklist (Logout mechanism)
 - [ ] CORS hardening and close PostgreSQL port in production

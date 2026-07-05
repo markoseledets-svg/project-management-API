@@ -13,8 +13,8 @@ from database.db_model import UserModel, RefreshTokenModel
 from core.security import ( 
     verify_hashes, 
     generate_refresh_token_data,
-    generate_refresh_token, 
-    generate_access_token, 
+    generate_refresh_jwt, 
+    generate_access_jwt, 
     decode_refresh_token, 
     decode_access_token
     )
@@ -82,15 +82,20 @@ class AuthServices:
             raise NotFoundError()
         return user
     
-    async def generate_jwt_token(self, user_public_id:uuid6.UUID, useragent:str) -> RefreshTokenModel:
-        new_refresh_token_data = generate_refresh_token_data(user_public_id,useragent)
+    async def generate_refresh_token(
+        self, 
+        user_public_id:uuid6.UUID, 
+        useragent:str,
+        family_id: Optional[uuid6.UUID] = None
+        ) -> str:
+        new_refresh_token_data = generate_refresh_token_data(user_public_id,useragent, family_id)
         new_refresh_token = RefreshTokenModel(**new_refresh_token_data)
         self.refresh_repo.add(new_refresh_token)
         await self.session.commit()
         await self.session.refresh(new_refresh_token)
         token_public_id = new_refresh_token.token_public_id
-        return generate_refresh_token(user_public_id, token_public_id)
-    
+        return generate_refresh_jwt(user_public_id, token_public_id)
+
     async def user_login_process(self, 
                                  user_agent:str, 
                                  form_data:OAuth2PasswordRequestForm
@@ -100,37 +105,49 @@ class AuthServices:
             except ValidationError:
                 raise DataValidationError()
             user = await self.verify_user_login(user_data)
-            access_token = generate_access_token(user.public_id)
-            refresh_token = await self.generate_jwt_token(user.public_id,user_agent)
+            access_token = generate_access_jwt(user.public_id)
+            refresh_token = await self.generate_refresh_token(user.public_id,user_agent)
             return {
                     "access_token": access_token,
                     "refresh_token": refresh_token,
                     "token_type": "bearer"
                     }
 
-    async def update_refresh_token(self, user_refresh_token:str) -> dict:
+    async def rotate_refresh_token(self, user_refresh_token:str, user_agent:str) -> dict:
         decoded_token = decode_refresh_token(user_refresh_token)
         user_public_id = decoded_token["user_public_id"]
         token_public_id = decoded_token["token_public_id"]
-        token_record = await self.refresh_repo.get_current_token_reccord(
+        token_record = await self.refresh_repo.get_current_token_record(
             user_public_id,
             token_public_id
         )
         if not token_record:
             raise AuthFailedError()
-        user_agent = token_record.user_agent
-        await self.session.delete(token_record)
+        if token_record.is_used == True:
+            is_retry_token_data = await self.redis_client.check_refresh_for_retries(user_refresh_token)
+            if is_retry_token_data:
+                return is_retry_token_data
+            await self.refresh_repo.invalidate_token_by_family(token_record.family_id)
+            await self.session.commit()
+            raise AuthFailedError()
+        token_record.is_used = True
         await self.session.flush()
         user = await self.get_user_by_public_id(user_public_id)
         if not user:
             raise AuthFailedError()
-        access_token = generate_access_token(user.public_id)
-        refresh_token = await self.generate_jwt_token(user.public_id, user_agent)
-        return {
+        access_token = generate_access_jwt(user.public_id)
+        refresh_token = await self.generate_refresh_token(
+                                                            user.public_id, 
+                                                            user_agent, 
+                                                            token_record.family_id
+                                                         )
+        tokens_data = {
                 "access_token": access_token,
                 "refresh_token": refresh_token,
                 "token_type": "bearer"
                 }
+        await self.redis_client.save_token_data_for_retries(user_refresh_token, tokens_data)
+        return tokens_data
     
     async def get_user_credentials(self, token:str):
         is_banned = await self.redis_client.check_banned_tokens(token)
@@ -159,5 +176,5 @@ class AuthServices:
         token_exists = await self.refresh_repo.check_if_token_exists(refresh_token_id)
         if not token_exists:
             raise TokenError()
-        await self.refresh_repo.delete_token_by_id(refresh_token_id)
+        await self.refresh_repo.mark_used_token_by_id(refresh_token_id)
         await self.session.commit()

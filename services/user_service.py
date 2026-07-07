@@ -21,9 +21,9 @@ from core.security import (
 from utils.logger import logger
 from core.exceptions import (
     UserAlreadyExistsError, 
-    AuthFailedError, NotFoundError, 
-    DataValidationError, 
-    TokenError
+    AuthFailedError, 
+    NotFoundError, 
+    DataValidationError
 )
 
 
@@ -110,10 +110,11 @@ class AuthServices:
             return {
                     "access_token": access_token,
                     "refresh_token": refresh_token,
-                    "token_type": "bearer"
                     }
 
     async def rotate_refresh_token(self, user_refresh_token:str, user_agent:str) -> dict:
+        if not user_refresh_token:
+            raise AuthFailedError()
         decoded_token = decode_refresh_token(user_refresh_token)
         user_public_id = decoded_token["user_public_id"]
         token_public_id = decoded_token["token_public_id"]
@@ -144,7 +145,6 @@ class AuthServices:
         tokens_data = {
                 "access_token": access_token,
                 "refresh_token": refresh_token,
-                "token_type": "bearer"
                 }
         await self.redis_client.save_token_data_for_retries(user_refresh_token, tokens_data)
         return tokens_data
@@ -152,11 +152,11 @@ class AuthServices:
     async def get_user_credentials(self, token:str):
         is_banned = await self.redis_client.check_banned_tokens(token)
         if is_banned:
-            raise TokenError()
+            raise AuthFailedError()
         user_data = decode_access_token(token)
         user = await self.user_repo.get_user_by_id(user_data["user_public_id"])
         if not user:
-            raise TokenError()
+            raise AuthFailedError()
         return user
     
     async def user_logout_process(
@@ -164,17 +164,19 @@ class AuthServices:
                                     user_access_token:str,
                                     user_refresh_token:str
                                     ) -> None:
+        if not user_access_token or not user_refresh_token:
+            raise AuthFailedError()
         access_token_data = decode_access_token(user_access_token)
         refresh_token_data =  decode_refresh_token(user_refresh_token)
         access_user_public_id = access_token_data["user_public_id"]
         refresh_user_public_id = refresh_token_data["user_public_id"]
         refresh_token_id = refresh_token_data["token_public_id"]
         if access_user_public_id != refresh_user_public_id:
-            raise TokenError()
+            raise AuthFailedError()
         token_exp = access_token_data["token_exparation"]
-        await self.redis_client.save_banned_access_token(user_access_token, token_exp)
         token_exists = await self.refresh_repo.check_if_token_exists(refresh_token_id)
         if not token_exists:
-            raise TokenError()
+            raise AuthFailedError()
+        await self.redis_client.save_banned_access_token(user_access_token, token_exp)
         await self.refresh_repo.mark_used_token_by_id(refresh_token_id)
         await self.session.commit()

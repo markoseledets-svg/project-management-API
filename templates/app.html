@@ -674,8 +674,6 @@
 // ══════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════
-let token = localStorage.getItem('token');
-let refreshToken = localStorage.getItem('refresh_token');
 let currentUser = null;
 let projects = [];
 let selectedProject = null;
@@ -686,7 +684,6 @@ let taskFilter = 'all';
 // BOOT
 // ══════════════════════════════════════════
 async function boot() {
-    if (!token && !refreshToken) return goLogin();
     try {
         currentUser = await apiGet('/auth/me');
         renderUser(currentUser);
@@ -705,13 +702,12 @@ function goLogin() { window.location.href = '/'; }
 // ══════════════════════════════════════════
 const API_BASE = '/api/v1';
 async function apiFetch(url, options = {}) {
-    options.headers = { ...(options.headers || {}), 'Authorization': `Bearer ${token}` };
+    options.credentials = 'same-origin';
     let res = await fetch(API_BASE + url, options);
-    if (res.status === 401 && refreshToken) {
+    if (res.status === 401) {
         const ok = await doRefresh();
         if (ok) {
-            options.headers['Authorization'] = `Bearer ${token}`;
-            res = await fetch(url, options);
+            res = await fetch(API_BASE + url, options);
         }
     }
     if (!res.ok) {
@@ -726,17 +722,10 @@ async function apiFetch(url, options = {}) {
 async function doRefresh() {
     try {
         const res = await fetch(API_BASE + '/auth/refresh', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refresh_token: refreshToken })
+            method: 'POST',
+            credentials: 'same-origin'
         });
-        if (res.ok) {
-            const data = await res.json();
-            token = data.access_token;
-            refreshToken = data.refresh_token;
-            localStorage.setItem('token', token);
-            localStorage.setItem('refresh_token', refreshToken);
-            return true;
-        }
+        return res.ok;
     } catch {}
     return false;
 }
@@ -1182,14 +1171,13 @@ function toast(msg, type = 'success') {
 
 async function logout() {
     try {
-        if (refreshToken) {
-            await apiPost('/auth/logout', { user_refresh_token: refreshToken });
-        }
+        await fetch(API_BASE + '/auth/logout', {
+            method: 'POST',
+            credentials: 'same-origin'
+        });
     } catch(e) {
         console.error(e);
     }
-    localStorage.removeItem('token');
-    localStorage.removeItem('refresh_token');
     window.location.href = '/';
 }
 

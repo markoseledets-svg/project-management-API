@@ -1,3 +1,4 @@
+from fastapi import Response
 from passlib.context import CryptContext
 from datetime import datetime , timedelta, timezone
 import os
@@ -5,13 +6,14 @@ from dotenv import load_dotenv
 import jwt
 import uuid6
 
-from core.exceptions import TokenError
+from core.exceptions import AuthFailedError
 
 load_dotenv()
 
 ACCESS_SECRET_KEY = os.getenv("ACCESS_SECRET_KEY")
 REFRESH_SECRET_KEY = os.getenv("REFRESH_SECRET_KEY")
 HASHING_ALGO  = os.getenv("ALGORITHM")
+IS_PRODUCTION = os.getenv("ENV") == "production"
 
 #hashing logic
 hashing = CryptContext(schemes=["bcrypt"])
@@ -70,7 +72,7 @@ def decode_jwt(token:str, secret_key) -> dict:
         payload = jwt.decode(token, secret_key, algorithms=[HASHING_ALGO])
         return payload
     except jwt.InvalidTokenError:
-        raise TokenError()
+        raise AuthFailedError()
 
 
 def decode_access_token(token: str) -> uuid6.UUID:
@@ -78,7 +80,7 @@ def decode_access_token(token: str) -> uuid6.UUID:
     user_public_id = payload.get("sub")
     token_exp = payload.get("exp")
     if not user_public_id:
-        raise TokenError()
+        raise AuthFailedError()
     return {
         "user_public_id":uuid6.UUID(user_public_id), 
         "token_exparation":token_exp
@@ -89,9 +91,47 @@ def decode_refresh_token(token: str) -> dict:
     user_public_id = payload.get("sub")
     token_public_id = payload.get("jti")
     if not user_public_id or not token_public_id:
-        raise TokenError()
+        raise AuthFailedError()
     return {
         "user_public_id": uuid6.UUID(user_public_id),
         "token_public_id": uuid6.UUID(token_public_id)
     }
 
+# Cookies set/delete for tokens
+
+def set_tokens_to_cookies(
+                            response: Response, 
+                            access_token: str, 
+                            refresh_token: str
+                         ) -> None:
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=IS_PRODUCTION,
+        samesite="lax",
+        max_age=900
+    )
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=IS_PRODUCTION,
+        samesite="lax",
+        max_age=1209600
+    )
+
+def delete_tokens_from_cookies(response: Response) -> None:
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        secure=IS_PRODUCTION,
+        samesite="lax"
+        )
+    response.delete_cookie(
+        key="refresh_token",
+        httponly=True,
+        secure=IS_PRODUCTION,
+        samesite="lax"
+        )

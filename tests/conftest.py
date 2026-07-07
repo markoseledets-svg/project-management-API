@@ -65,46 +65,48 @@ async def test_user(test_client, fake_redis):
     return user_credentials
 
 @pytest.fixture(scope="session")
-async def auth_headers(test_client, test_user):
+async def auth_cookies(test_client, test_user):
     response = await test_client.post(
         "/api/v1/auth/", 
     data={"username": test_user["email"], 
     "password": test_user["password"]})
-    access_token = response.json()["access_token"]
-    return {"Authorization": f"Bearer {access_token}"}
+    return {
+        "access_token": response.cookies.get("access_token"),
+        "refresh_token": response.cookies.get("refresh_token")
+        }
 
 @pytest.fixture(scope="session")
-async def test_project(test_client, auth_headers):
+async def test_project(test_client, auth_cookies):
     project_data = {"project_name": "test_project"}
     await test_client.post(
         "/api/v1/projects/add",
         json=project_data,
-        headers=auth_headers
+        cookies=auth_cookies
     )
 
 @pytest.fixture(scope="session")
-async def test_project_id(test_client, auth_headers, test_project):
+async def test_project_id(test_client, auth_cookies, test_project):
     response = await test_client.get(
         "/api/v1/projects/",
-        headers=auth_headers
+        cookies=auth_cookies
     )
     project_list = response.json()
     return project_list[0]["project_public_id"]
 
 @pytest.fixture(scope="session")
-async def test_task(test_client, test_project_id, auth_headers):
+async def test_task(test_client, test_project_id, auth_cookies):
     task_data = {"task_name":"test_task", "description":"test_task_desc"}
     await test_client.post(
         f"/api/v1/projects/{test_project_id}/tasks/",
         json=task_data,
-        headers=auth_headers
+        cookies=auth_cookies
     )
 
 @pytest.fixture(scope="session")
-async def test_task_id(test_client, test_project_id, test_task, auth_headers):
+async def test_task_id(test_client, test_project_id, test_task, auth_cookies):
     task_response = await test_client.get(
         f"/api/v1/projects/{test_project_id}/tasks/",
-        headers=auth_headers
+        cookies=auth_cookies
     )
     task_list=task_response.json()
     return task_list[0]["task_public_id"]

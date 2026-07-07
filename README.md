@@ -6,7 +6,7 @@ A REST API for managing projects and tasks with JWT authentication and role-base
 
 ## Features
 
-- User registration and login (JWT access token + refresh token with rotation)
+- User registration and login (JWT access + refresh tokens stored in HTTP-only cookies with rotation)
 - Project management — create, update, change status, soft-delete
 - Multi-user collaboration — invite users to projects by email, assign roles (admin / editor / viewer)
 - Task management — create, update, toggle completion, delete, scoped to a project
@@ -45,7 +45,7 @@ A REST API for managing projects and tasks with JWT authentication and role-base
 │           └── routers/        # auth, projects, tasks, frontend
 ├── core/
 │   ├── exceptions.py           # custom exceptions
-│   └── security.py            # JWT, password hashing
+│   └── security.py            # JWT, password hashing, cookie management
 ├── database/
 │   ├── db_config.py            # engine, connection pool
 │   └── db_model.py            # ORM models
@@ -136,7 +136,8 @@ POSTGRES_TEST_USER=my_test_user
 POSTGRES_TEST_PASSWORD=my_test_password
 POSTGRES_TEST_DB=my_test_database
 
-# 'development' enables /docs; 'production' disables it
+# 'development' enables /docs and disables Secure flag on cookies
+# 'production' disables /docs and enables Secure flag on cookies
 ENV=development
 ```
 
@@ -185,7 +186,7 @@ Swagger UI: `http://localhost:8000/docs` (only when `ENV=development`)
 - [x] Rate limiting on auth endpoints
 - [x] Redis-based Access Token Blacklist (Logout mechanism)
 - [ ] CORS hardening and close PostgreSQL port in production
-- [ ] Coockies httponly, secure, same-site settings for tokens storing.
+- [x] HTTP-only cookies with Secure, SameSite=Lax flags for token storage
 
 #### Features
 - [ ] User CRUD (profile update, account management)

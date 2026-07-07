@@ -11,7 +11,7 @@ from database.db_config import engine
 from app.api.v1 import router
 from app.api.v1.routers import frontend_routes
 from utils.logger import logger
-from core.exceptions import AppBaseError, TokenError
+from core.exceptions import AppBaseError
 
 load_dotenv()
 
@@ -71,16 +71,6 @@ async def http_errors_handler(request: Request, exc: AppBaseError):
         status_code = exc.status_code,
         content = {"detail":exc.detail}
     )
-
-@app.exception_handler(TokenError)
-async def token_error_handler(request: Request, exc: TokenError):
-    logger.warning(f"Invalid token on {request.method}:{request.url.path}.")
-    return JSONResponse(
-        status_code = exc.status_code,
-        content = {"detail":exc.detail},
-        headers = exc.headers
-    )
-
 
 app.include_router(frontend_routes.router)
 app.include_router(router.router_v1)

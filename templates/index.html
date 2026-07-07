@@ -447,18 +447,16 @@
 <script>
     const API_BASE = '/api/v1';
     let isLogin = true;
-    let token = localStorage.getItem('token');
-    let refreshToken = localStorage.getItem('refresh_token');
 
-    // Auto-check session
-    if (token || refreshToken) silentCheck();
+    // Auto-check session (cookies are sent automatically)
+    silentCheck();
 
     async function silentCheck() {
         try {
-            let res = await fetch(API_BASE + '/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
-            if (res.status === 401 && refreshToken) {
+            let res = await fetch(API_BASE + '/auth/me', { credentials: 'same-origin' });
+            if (res.status === 401) {
                 const ok = await doRefresh();
-                if (ok) res = await fetch(API_BASE + '/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+                if (ok) res = await fetch(API_BASE + '/auth/me', { credentials: 'same-origin' });
             }
             if (res.ok) window.location.href = '/app';
         } catch {}
@@ -468,17 +466,9 @@
         try {
             const res = await fetch(API_BASE + '/auth/refresh', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refresh_token: refreshToken })
+                credentials: 'same-origin'
             });
-            if (res.ok) {
-                const data = await res.json();
-                token = data.access_token;
-                refreshToken = data.refresh_token;
-                localStorage.setItem('token', token);
-                localStorage.setItem('refresh_token', refreshToken);
-                return true;
-            }
+            return res.ok;
         } catch {}
         return false;
     }
@@ -562,15 +552,11 @@
                 const res = await fetch(API_BASE + '/auth/', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    credentials: 'same-origin',
                     body: formData
                 });
 
                 if (res.ok) {
-                    const data = await res.json();
-                    token = data.access_token;
-                    refreshToken = data.refresh_token;
-                    localStorage.setItem('token', token);
-                    if (refreshToken) localStorage.setItem('refresh_token', refreshToken);
                     showMessage('✓ Login successful! Redirecting…', 'success');
                     setTimeout(() => window.location.href = '/app', 700);
                 } else {

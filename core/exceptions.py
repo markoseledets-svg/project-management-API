@@ -31,13 +31,3 @@ class GoneError(AppBaseError):
 class ToManyRequestsError(AppBaseError):
     def __init__(self, status_code=429, detail="To many requests!"):
         super().__init__(status_code, detail)
-
-class TokenError(AppBaseError):
-    def __init__(
-                self, 
-                status_code=401,
-                detail="Could not validate credentials",
-                headers = {"WWW-Authenticate": "Bearer"}
-                ):
-        super().__init__(status_code, detail)
-        self.headers = headers

@@ -1,6 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, Cookie
 
 from database.db_config import engine
 from schemas.login_schemas import UserGetModel
@@ -9,8 +8,7 @@ from services.task_service import TaskService
 from services.project_services import ProjectService
 from typing import Annotated, Type, TypeVar, Callable, Any
 from app.api.dependencies.redis_dependencies import RedisClient
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth")
+from core.exceptions import AuthFailedError
 
 async def get_db():
     async with AsyncSession(engine, expire_on_commit=False) as session:
@@ -35,7 +33,9 @@ AuthServiceDep = Annotated[AuthServices, Depends(get_auth_service)]
 
 async def get_current_user(
     auth_services: AuthServiceDep,
-    token: str = Depends(oauth2_scheme),
+    access_token: str | None = Cookie(default=None),
     ) -> UserGetModel:
-    return await auth_services.get_user_credentials(token)
+    if not access_token:
+        raise AuthFailedError()
+    return await auth_services.get_user_credentials(access_token)
     

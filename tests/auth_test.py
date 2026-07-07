@@ -41,10 +41,10 @@ async def test_auth_and_refresh(test_client, test_user):
         data = user_data
     )
     assert succesfull_login_response.status_code == 200
-    token = succesfull_login_response.json()["refresh_token"]
+    token_cookie = {"refresh_token": succesfull_login_response.cookies.get("refresh_token")}
     refresh_rotation_request = await test_client.post(
         "/api/v1/auth/refresh",
-        json = {"refresh_token":token}
+        cookies=token_cookie
     )
     assert refresh_rotation_request.status_code == 200
 
@@ -69,42 +69,45 @@ async def test_user_not_found(test_client):
 @pytest.mark.asyncio
 async def test_fake_token(test_client):
     fake_token = "fake_tokena_string_123"
-    response = await test_client.post("/api/v1/auth/refresh", json={"refresh_token":fake_token})
+    response = await test_client.post(
+                                        "/api/v1/auth/refresh",
+                                        cookies={"refresh_token":fake_token}
+                                    )
     assert response.status_code == 401
 
 @pytest.mark.asyncio
-async def test_get_current_user(test_client, auth_headers):
+async def test_get_current_user(test_client, auth_cookies):
     user_response = await test_client.get(
         "/api/v1/auth/me",
-        headers = auth_headers
+        cookies = auth_cookies
     )
     assert user_response.status_code == 200
 
 @pytest.mark.asyncio
 async def test_logout(test_client):
     user_login_data = {"username":"test1@gmail.com", "password":"password123"}
-    headers_request = await test_client.post(
+    login_request = await test_client.post(
         "/api/v1/auth/",
         data=user_login_data
     )
-    assert headers_request.status_code == 200
-    token_data = headers_request.json()
-    headers = {"Authorization": f"Bearer {token_data['access_token']}"}
-    body = {"user_refresh_token": token_data["refresh_token"]}
+    assert login_request.status_code == 200
+    auth_cookies = {
+        "access_token": login_request.cookies.get("access_token"),
+        "refresh_token": login_request.cookies.get("refresh_token")
+        }
     logout_request = await test_client.post(
         "/api/v1/auth/logout",
-        headers=headers,
-        json=body
+        cookies=auth_cookies
     )
     assert logout_request.status_code == 200
     test_access_blacklist = await test_client.get(
         "/api/v1/auth/me",
-        headers = headers
+        cookies=auth_cookies
     )
     assert test_access_blacklist.status_code == 401
     test_refresh_record_deleted = await test_client.post(
         "/api/v1/auth/refresh",
-        json={"refresh_token": token_data["refresh_token"]}
+        cookies=auth_cookies
     )
     assert test_refresh_record_deleted.status_code == 401
 
@@ -123,34 +126,33 @@ async def test_rate_limit(test_client):
 @pytest.mark.asyncio
 async def test_token_retry_and_reuse(test_client):
     user_login_data = {"username":"test1@gmail.com", "password":"password123"}
-    headers_request = await test_client.post(
+    login_request = await test_client.post(
         "/api/v1/auth/",
         data=user_login_data
     )
-    assert headers_request.status_code == 200
-    token_data = headers_request.json()
-    body = {"refresh_token": token_data["refresh_token"]}
+    assert login_request.status_code == 200
+    refresh_cookies = {"refresh_token": login_request.cookies.get("refresh_token")}
 
     refresh_request = await test_client.post(
             "/api/v1/auth/refresh",
-            json=body
+            cookies=refresh_cookies
         )
     assert refresh_request.status_code == 200
     retry_request = await test_client.post(
             "/api/v1/auth/refresh",
-            json=body
+            cookies=refresh_cookies
         )
     assert retry_request.status_code == 200
-    new_token_data = retry_request.json()
-    new_token_body =  {"refresh_token": new_token_data["refresh_token"]}
+
+    new_refresh_cookies =  {"refresh_token": retry_request.cookies.get("refresh_token")}
     await asyncio.sleep(5)
     reuse_request = await test_client.post(
             "/api/v1/auth/refresh",
-            json=body
+            cookies=refresh_cookies
         )
     assert reuse_request.status_code == 401
     family_banned_request = await test_client.post(
             "/api/v1/auth/refresh",
-            json=new_token_body
+            cookies=new_refresh_cookies
         )
     assert family_banned_request.status_code == 401

@@ -69,6 +69,8 @@ class RedisServices:
                                         ) -> None:
         key = f"tokens:banned:{user_token}"
         token_ttl = int(exp - time.time())
+        if token_ttl <= 0:
+            return
         await self.redis_client.setex(key, token_ttl, "1")
 
         

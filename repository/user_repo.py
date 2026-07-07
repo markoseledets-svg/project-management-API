@@ -39,12 +39,11 @@ class RefreshRepository(BaseRepository[RefreshTokenModel]):
             token_public_id=token_public_id
             )
     
-    async def check_if_token_exists(
+    async def get_token_by_id(
                                     self,
                                     token_public_id:uuid6.UUID
-                                    ) -> bool:
-        token_id = await self.get_columns_by("token_public_id", token_public_id=token_public_id)
-        return token_id is not None
+                                    ) -> RefreshTokenModel:
+        return await self.get_by(token_public_id=token_public_id)
 
     async def mark_used_token_by_id(
                                 self,

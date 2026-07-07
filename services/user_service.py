@@ -174,8 +174,8 @@ class AuthServices:
         if access_user_public_id != refresh_user_public_id:
             raise AuthFailedError()
         token_exp = access_token_data["token_exparation"]
-        token_exists = await self.refresh_repo.check_if_token_exists(refresh_token_id)
-        if not token_exists:
+        token_record = await self.refresh_repo.get_token_by_id(refresh_token_id)
+        if not token_record or token_record.is_used:
             raise AuthFailedError()
         await self.redis_client.save_banned_access_token(user_access_token, token_exp)
         await self.refresh_repo.mark_used_token_by_id(refresh_token_id)

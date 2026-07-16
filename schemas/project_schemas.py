@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, EmailStr
 import uuid
 from datetime import datetime
 
@@ -29,6 +29,12 @@ class ProjectWithRoleGetModel(ProjectGetModel):
     user_role: UserRole
 
 class PostNewRelation(BaseModel):
-    email: str
+    email: EmailStr
     user_role: UserRole
 
+class GetUserDataWithRole(PostNewRelation):
+    public_id: uuid.UUID
+
+class UpdateUserRole(BaseModel):
+    user_public_id: uuid.UUID
+    user_role: UserRole

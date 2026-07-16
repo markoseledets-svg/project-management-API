@@ -91,7 +91,7 @@ async def test_project_id(test_client, auth_cookies, test_project):
         cookies=auth_cookies
     )
     project_list = response.json()
-    return project_list[0]["project_public_id"]
+    return next(i["project_public_id"] for i in project_list if i["project_name"] == "test_project")
 
 @pytest.fixture(scope="session")
 async def test_task(test_client, test_project_id, auth_cookies):
@@ -101,6 +101,41 @@ async def test_task(test_client, test_project_id, auth_cookies):
         json=task_data,
         cookies=auth_cookies
     )
+    
+@pytest.fixture(scope="session")
+async def test_project_user(test_client, fake_redis):
+    user_data = {"email":"test_project@gmail.com", "password":"password123"}
+    await test_client.post(
+        f"/api/v1/auth/register",
+        json=user_data
+    )
+    redis_data_str = await fake_redis.get("otp:users:test_project@gmail.com")
+    redis_data = json.loads(redis_data_str)
+    correct_otp = redis_data["otp"]
+    code_payload = {"email":"test_project@gmail.com", "otp":correct_otp}
+    await test_client.post(
+        "/api/v1/auth/verify-otp",
+        json=code_payload
+    )
+    return user_data
+
+@pytest.fixture(scope="session")
+async def project_user_id(test_client, test_project_user):
+    response = await test_client.post(
+        "/api/v1/auth/", 
+    data={"username": test_project_user["email"], 
+    "password": test_project_user["password"]})
+    project_auth_cookies = {
+        "access_token": response.cookies.get("access_token"),
+        "refresh_token": response.cookies.get("refresh_token")
+        }
+    get_user_response = await test_client.get(
+        "/api/v1/auth/me",
+        cookies = project_auth_cookies
+    )
+    user = get_user_response.json()
+    get_user_response.cookies.clear()
+    return user['public_id']
 
 @pytest.fixture(scope="session")
 async def test_task_id(test_client, test_project_id, test_task, auth_cookies):
@@ -109,4 +144,4 @@ async def test_task_id(test_client, test_project_id, test_task, auth_cookies):
         cookies=auth_cookies
     )
     task_list=task_response.json()
-    return task_list[0]["task_public_id"]
+    return next(i["task_public_id"] for i in task_list if i["task_name"] == "test_task")

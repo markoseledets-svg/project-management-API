@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TaskFlow — Dashboard</title>
-    <meta name="description" content="TaskFlow dashboard — manage your projects, tasks, and team collaborators.">
+    <meta name="description" content="TaskFlow dashboard — manage projects, tasks, and team collaborators.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* ══════════════════════════════════════════
-           DESIGN TOKENS
-           ══════════════════════════════════════════ */
         :root {
             --bg: #050a18;
             --surface: #0c1225;
@@ -36,54 +33,36 @@
             --radius-sm: 10px;
             --sidebar-w: 280px;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Inter', -apple-system, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            display: flex;
-            overflow: hidden;
+            background: var(--bg); color: var(--text);
+            min-height: 100vh; display: flex; overflow: hidden;
             background-image:
                 radial-gradient(ellipse at 10% 0%, rgba(99,102,241,0.06) 0px, transparent 60%),
                 radial-gradient(ellipse at 90% 100%, rgba(139,92,246,0.04) 0px, transparent 60%);
         }
 
-        /* ══════════════════════════════════════════
-           SIDEBAR
-           ══════════════════════════════════════════ */
+        /* ══ SIDEBAR ══ */
         .sidebar {
-            width: var(--sidebar-w);
-            min-height: 100vh;
-            background: var(--surface);
-            border-right: 1px solid var(--border);
-            display: flex; flex-direction: column;
-            flex-shrink: 0;
+            width: var(--sidebar-w); min-height: 100vh;
+            background: var(--surface); border-right: 1px solid var(--border);
+            display: flex; flex-direction: column; flex-shrink: 0;
             transition: transform 0.3s;
         }
-
-        .sidebar-header {
-            padding: 1.25rem 1.25rem 0;
-            display: flex; align-items: center; gap: 0.75rem;
-        }
+        .sidebar-header { padding: 1.25rem 1.25rem 0; display: flex; align-items: center; gap: 0.75rem; }
         .logo-icon {
             width: 38px; height: 38px;
             background: linear-gradient(135deg, var(--primary), var(--accent));
-            border-radius: 11px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.15rem;
-            box-shadow: 0 4px 12px var(--primary-glow);
-            flex-shrink: 0;
+            border-radius: 11px; display: flex; align-items: center; justify-content: center;
+            font-size: 1.15rem; box-shadow: 0 4px 12px var(--primary-glow); flex-shrink: 0;
         }
         .logo-text { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em; }
         .logo-text span { color: var(--primary); }
 
-        /* Projects Section */
-        .projects-section {
-            flex: 1; overflow-y: auto;
-            padding: 1.25rem 0.75rem 0.75rem;
-        }
+        .projects-section { flex: 1; overflow-y: auto; padding: 1.25rem 0.75rem 0.75rem; }
+        .projects-section::-webkit-scrollbar { width: 4px; }
+        .projects-section::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
         .section-label {
             font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
             letter-spacing: 0.1em; color: var(--text-muted);
@@ -97,123 +76,49 @@
         }
         .section-label button:hover { color: var(--primary); background: var(--primary-glow); }
 
-        .project-list {
-            display: flex; flex-direction: column; gap: 2px;
-        }
-
+        .project-list { display: flex; flex-direction: column; gap: 2px; }
         .project-item {
             display: flex; align-items: center; gap: 0.625rem;
-            padding: 0.6rem 0.625rem;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid transparent;
-            position: relative;
+            padding: 0.6rem 0.625rem; border-radius: var(--radius-sm);
+            cursor: pointer; transition: all 0.2s; border: 1px solid transparent; position: relative;
         }
-        .project-item:hover {
-            background: var(--surface-2);
-            border-color: var(--border);
-        }
-        .project-item.active {
-            background: var(--primary-glow);
-            border-color: rgba(99,102,241,0.15);
-        }
-
-        .project-dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            flex-shrink: 0;
-        }
+        .project-item:hover { background: var(--surface-2); border-color: var(--border); }
+        .project-item.active { background: var(--primary-glow); border-color: rgba(99,102,241,0.15); }
+        .project-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
         .dot-active { background: var(--success); box-shadow: 0 0 6px rgba(16,185,129,0.4); }
         .dot-archived { background: var(--text-muted); }
         .dot-suspended { background: var(--warning); box-shadow: 0 0 6px rgba(245,158,11,0.3); }
-
         .project-info { flex: 1; min-width: 0; }
-        .project-name {
-            font-size: 0.825rem; font-weight: 600;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            color: var(--text-soft);
-        }
+        .project-name { font-size: 0.825rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-soft); }
         .project-item.active .project-name { color: var(--text); }
-
-        .project-role {
-            font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 0.1rem 0.375rem; border-radius: 4px;
-            flex-shrink: 0;
-        }
+        .project-role { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.1rem 0.375rem; border-radius: 4px; flex-shrink: 0; }
+        .role-owner { background: rgba(251,191,36,0.15); color: #fbbf24; }
         .role-admin { background: rgba(167,139,250,0.15); color: #a78bfa; }
         .role-editor { background: rgba(56,189,248,0.15); color: #38bdf8; }
         .role-viewer { background: rgba(74,222,128,0.15); color: #4ade80; }
 
-        /* User Card (bottom) */
-        .sidebar-footer {
-            padding: 0.75rem;
-            border-top: 1px solid var(--border);
-        }
-        .user-card {
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 0.75rem 0.875rem;
-            display: flex; align-items: center; gap: 0.625rem;
-        }
-        .user-avatar {
-            width: 34px; height: 34px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 800; font-size: 0.8rem; flex-shrink: 0;
-        }
+        .sidebar-footer { padding: 0.75rem; border-top: 1px solid var(--border); }
+        .user-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem 0.875rem; display: flex; align-items: center; gap: 0.625rem; }
+        .user-avatar { width: 34px; height: 34px; background: linear-gradient(135deg, var(--primary), var(--accent)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.8rem; flex-shrink: 0; }
         .user-meta { flex: 1; min-width: 0; }
         .user-name { font-weight: 600; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .user-email { font-size: 0.65rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .logout-btn {
-            background: none; border: none; cursor: pointer;
-            color: var(--text-muted); font-size: 0.95rem;
-            transition: color 0.2s; padding: 0.25rem;
-        }
+        .user-email-text { font-size: 0.65rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .logout-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 0.95rem; transition: color 0.2s; padding: 0.25rem; }
         .logout-btn:hover { color: var(--danger); }
 
-        /* ══════════════════════════════════════════
-           MAIN AREA
-           ══════════════════════════════════════════ */
-        .main {
-            flex: 1; display: flex; flex-direction: column;
-            min-width: 0; overflow: hidden;
-        }
-
-        /* Topbar */
-        .topbar {
-            padding: 1rem 2rem;
-            border-bottom: 1px solid var(--border);
-            background: var(--surface);
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 1rem; flex-shrink: 0;
-        }
+        /* ══ MAIN ══ */
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+        .topbar { padding: 1rem 2rem; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-shrink: 0; }
         .topbar-left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
-        .topbar h1 {
-            font-size: 1.25rem; font-weight: 700;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        .topbar-status {
-            padding: 0.2rem 0.6rem; border-radius: 20px;
-            font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.03em; flex-shrink: 0;
-        }
+        .topbar h1 { font-size: 1.25rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .topbar-status { padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; flex-shrink: 0; }
         .status-active { background: var(--success-bg); color: var(--success); }
         .status-archived { background: rgba(100,116,139,0.15); color: var(--text-muted); }
         .status-suspended { background: var(--warning-bg); color: var(--warning); }
-
-        .topbar-actions { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
+        .topbar-actions { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
 
         /* Buttons */
-        .btn {
-            display: inline-flex; align-items: center; gap: 0.4rem;
-            padding: 0.55rem 1rem;
-            border-radius: var(--radius-sm); border: none; cursor: pointer;
-            font-size: 0.8rem; font-weight: 600; font-family: inherit;
-            transition: all 0.2s; white-space: nowrap;
-        }
+        .btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1rem; border-radius: var(--radius-sm); border: none; cursor: pointer; font-size: 0.8rem; font-weight: 600; font-family: inherit; transition: all 0.2s; white-space: nowrap; }
         .btn-primary { background: var(--primary); color: #fff; }
         .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: 0 4px 12px var(--primary-glow); }
         .btn-ghost { background: var(--surface-2); color: var(--text-soft); border: 1px solid var(--border); }
@@ -224,41 +129,19 @@
         .btn-warning:hover { background: rgba(245,158,11,0.18); }
         .btn-sm { padding: 0.375rem 0.7rem; font-size: 0.75rem; }
 
-        /* Content */
-        .content {
-            flex: 1; overflow-y: auto;
-            padding: 1.75rem 2rem;
-        }
+        .content { flex: 1; overflow-y: auto; padding: 1.75rem 2rem; }
         .content::-webkit-scrollbar { width: 6px; }
         .content::-webkit-scrollbar-track { background: transparent; }
         .content::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
 
-        /* ── Welcome / Empty ── */
-        .welcome-state {
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            min-height: 60vh; text-align: center;
-            animation: fadeIn 0.5s ease;
-        }
-        .welcome-icon {
-            font-size: 4rem; margin-bottom: 1.5rem;
-            filter: drop-shadow(0 4px 12px var(--primary-glow));
-        }
-        .welcome-state h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
-        .welcome-state p { color: var(--text-muted); font-size: 0.925rem; max-width: 400px; margin-bottom: 1.5rem; }
+        /* Tabs for tasks/members */
+        .view-tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); padding: 3px; border-radius: var(--radius-sm); margin-bottom: 1.5rem; }
+        .view-tab { padding: 0.45rem 1rem; border-radius: 7px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--text-muted); transition: all 0.2s; border: none; background: none; font-family: inherit; }
+        .view-tab.active { background: var(--surface-2); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
 
-        /* ── Stats Grid ── */
-        .stats-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
-            gap: 0.875rem; margin-bottom: 1.75rem;
-        }
-        .stat-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1.125rem;
-            transition: border-color 0.2s;
-        }
+        /* Stats */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 0.875rem; margin-bottom: 1.5rem; }
+        .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.125rem; transition: border-color 0.2s; }
         .stat-card:hover { border-color: var(--border-hover); }
         .stat-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.375rem; text-transform: uppercase; letter-spacing: 0.05em; }
         .stat-value { font-size: 1.75rem; font-weight: 800; }
@@ -266,228 +149,95 @@
         .stat-success { color: var(--success); }
         .stat-warning { color: var(--warning); }
 
-        /* ── Section Header ── */
-        .content-header {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 1.125rem;
-        }
+        .content-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.125rem; }
         .content-title { font-size: 1rem; font-weight: 700; }
 
-        .filter-pills {
-            display: flex; gap: 4px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            padding: 3px; border-radius: var(--radius-sm);
-        }
-        .filter-pill {
-            padding: 0.3rem 0.75rem; border-radius: 7px;
-            font-size: 0.75rem; font-weight: 600; cursor: pointer;
-            color: var(--text-muted); transition: all 0.2s;
-            border: none; background: none; font-family: inherit;
-        }
-        .filter-pill.active {
-            background: var(--surface-2); color: var(--text);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-        }
+        .filter-pills { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); padding: 3px; border-radius: var(--radius-sm); }
+        .filter-pill { padding: 0.3rem 0.75rem; border-radius: 7px; font-size: 0.75rem; font-weight: 600; cursor: pointer; color: var(--text-muted); transition: all 0.2s; border: none; background: none; font-family: inherit; }
+        .filter-pill.active { background: var(--surface-2); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
 
-        /* ── Tasks Grid ── */
-        .tasks-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 0.875rem;
-        }
-
-        .task-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 1.125rem;
-            transition: all 0.25s;
-            position: relative;
-            overflow: hidden;
-        }
-        .task-card::before {
-            content: ''; position: absolute; left: 0; top: 0; bottom: 0;
-            width: 3px; border-radius: 3px 0 0 3px;
-            background: var(--primary); opacity: 0;
-            transition: opacity 0.2s;
-        }
-        .task-card:hover {
-            border-color: rgba(99,102,241,0.25);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-        }
+        /* Tasks Grid */
+        .tasks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.875rem; }
+        .task-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.125rem; transition: all 0.25s; position: relative; overflow: hidden; }
+        .task-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 3px 0 0 3px; background: var(--primary); opacity: 0; transition: opacity 0.2s; }
+        .task-card:hover { border-color: rgba(99,102,241,0.25); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
         .task-card:hover::before { opacity: 1; }
         .task-card.done { opacity: 0.6; }
         .task-card.done::before { background: var(--success); }
-
         .task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.625rem; margin-bottom: 0.625rem; }
         .task-title { font-weight: 600; font-size: 0.9rem; line-height: 1.4; word-break: break-word; flex: 1; }
         .task-title.crossed { text-decoration: line-through; color: var(--text-muted); }
-
-        .badge {
-            padding: 0.15rem 0.5rem; border-radius: 20px;
-            font-size: 0.65rem; font-weight: 700; white-space: nowrap; flex-shrink: 0;
-        }
+        .badge { padding: 0.15rem 0.5rem; border-radius: 20px; font-size: 0.65rem; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
         .badge-todo { background: var(--warning-bg); color: var(--warning); }
         .badge-done { background: var(--success-bg); color: var(--success); }
-
         .task-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.875rem; }
-
         .task-bottom { display: flex; align-items: center; justify-content: flex-end; gap: 0.35rem; }
-
-        .icon-btn {
-            width: 28px; height: 28px; border-radius: 7px;
-            border: 1px solid var(--border); background: none;
-            cursor: pointer; color: var(--text-muted);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.8rem; transition: all 0.2s;
-        }
+        .icon-btn { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; transition: all 0.2s; }
         .icon-btn:hover { background: var(--surface-2); color: var(--text); }
         .icon-btn.check:hover { background: var(--success-bg); color: var(--success); border-color: rgba(16,185,129,0.3); }
         .icon-btn.edit:hover { background: var(--primary-glow); color: var(--primary); border-color: rgba(99,102,241,0.3); }
         .icon-btn.del:hover { background: var(--danger-bg); color: var(--danger); border-color: rgba(239,68,68,0.3); }
 
-        /* ── Empty state ── */
-        .empty-state {
-            text-align: center; padding: 3rem 2rem;
-            color: var(--text-muted); grid-column: 1 / -1;
-        }
+        /* Members Table */
+        .members-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .members-table th { text-align: left; font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+        .members-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.85rem; vertical-align: middle; }
+        .members-table tr:last-child td { border-bottom: none; }
+        .members-table tr:hover td { background: rgba(255,255,255,0.02); }
+        .member-email { font-weight: 600; }
+        .member-role-badge { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; padding: 0.15rem 0.5rem; border-radius: 6px; }
+        .member-actions { display: flex; gap: 0.35rem; justify-content: flex-end; }
+        .members-wrapper { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+
+        /* Welcome / Empty */
+        .welcome-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; animation: fadeIn 0.5s ease; }
+        .welcome-icon { font-size: 4rem; margin-bottom: 1.5rem; filter: drop-shadow(0 4px 12px var(--primary-glow)); }
+        .welcome-state h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .welcome-state p { color: var(--text-muted); font-size: 0.925rem; max-width: 400px; margin-bottom: 1.5rem; }
+        .empty-state { text-align: center; padding: 3rem 2rem; color: var(--text-muted); grid-column: 1 / -1; }
         .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
         .empty-state h3 { font-size: 1rem; margin-bottom: 0.35rem; color: var(--text-soft); }
         .empty-state p { font-size: 0.85rem; }
 
-        /* ══════════════════════════════════════════
-           MODAL
-           ══════════════════════════════════════════ */
-        .overlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.65);
-            backdrop-filter: blur(6px);
-            z-index: 100;
-            display: none; align-items: center; justify-content: center;
-            padding: 1rem;
-        }
+        /* Modal */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(6px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 1rem; }
         .overlay.open { display: flex; }
-
-        .modal {
-            background: var(--surface);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 18px;
-            padding: 1.75rem;
-            width: 100%; max-width: 420px;
-            box-shadow: 0 25px 60px rgba(0,0,0,0.6);
-            animation: modalIn 0.25s ease;
-        }
+        .modal { background: var(--surface); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 1.75rem; width: 100%; max-width: 420px; box-shadow: 0 25px 60px rgba(0,0,0,0.6); animation: modalIn 0.25s ease; }
         @keyframes modalIn { from { opacity: 0; transform: translateY(-12px) scale(0.97); } }
-
         .modal-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; }
-
         .form-group { margin-bottom: 1.125rem; }
-        .form-group label {
-            display: block; font-size: 0.75rem; color: var(--text-muted);
-            font-weight: 600; margin-bottom: 0.35rem;
-        }
-        .form-control {
-            width: 100%; padding: 0.65rem 0.875rem;
-            background: rgba(0,0,0,0.25);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text); font-size: 0.875rem;
-            font-family: inherit; outline: none;
-            transition: border-color 0.2s;
-        }
-        .form-control:focus {
-            border-color: rgba(99,102,241,0.5);
-            box-shadow: 0 0 0 2px var(--primary-glow);
-        }
+        .form-group label { display: block; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.35rem; }
+        .form-control { width: 100%; padding: 0.65rem 0.875rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.875rem; font-family: inherit; outline: none; transition: border-color 0.2s; }
+        .form-control:focus { border-color: rgba(99,102,241,0.5); box-shadow: 0 0 0 2px var(--primary-glow); }
         .form-control::placeholder { color: var(--text-muted); }
         textarea.form-control { resize: vertical; min-height: 70px; }
         select.form-control { cursor: pointer; }
         select.form-control option { background: var(--surface); }
+        .modal-footer { display: flex; gap: 0.625rem; justify-content: flex-end; margin-top: 1.25rem; }
 
-        .modal-footer {
-            display: flex; gap: 0.625rem; justify-content: flex-end; margin-top: 1.25rem;
-        }
-
-        /* ══════════════════════════════════════════
-           CONTEXT MENU (project actions)
-           ══════════════════════════════════════════ */
-        .ctx-menu {
-            position: fixed;
-            background: var(--surface-2);
-            border: 1px solid var(--border-hover);
-            border-radius: 12px;
-            padding: 0.375rem;
-            box-shadow: 0 12px 32px rgba(0,0,0,0.5);
-            z-index: 200;
-            min-width: 180px;
-            display: none;
-            animation: modalIn 0.15s ease;
-        }
+        /* Context Menu */
+        .ctx-menu { position: fixed; background: var(--surface-2); border: 1px solid var(--border-hover); border-radius: 12px; padding: 0.375rem; box-shadow: 0 12px 32px rgba(0,0,0,0.5); z-index: 200; min-width: 190px; display: none; animation: modalIn 0.15s ease; }
         .ctx-menu.open { display: block; }
-        .ctx-item {
-            display: flex; align-items: center; gap: 0.5rem;
-            padding: 0.5rem 0.625rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.8rem; font-weight: 500;
-            color: var(--text-soft);
-            transition: all 0.15s;
-            border: none; background: none; width: 100;
-            font-family: inherit; text-align: left;
-        }
+        .ctx-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.625rem; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 500; color: var(--text-soft); transition: all 0.15s; border: none; background: none; width: 100%; font-family: inherit; text-align: left; }
         .ctx-item:hover { background: var(--surface-3); color: var(--text); }
         .ctx-item.danger { color: var(--danger); }
         .ctx-item.danger:hover { background: var(--danger-bg); }
         .ctx-sep { height: 1px; background: var(--border); margin: 0.25rem 0.5rem; }
 
-        /* ══════════════════════════════════════════
-           TOAST
-           ══════════════════════════════════════════ */
-        .toast-container {
-            position: fixed; top: 1.25rem; right: 1.25rem;
-            z-index: 999;
-            display: flex; flex-direction: column; gap: 0.4rem;
-        }
-        .toast {
-            background: var(--surface-2);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 0.75rem 1.125rem;
-            font-size: 0.825rem; font-weight: 500;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
-            animation: toastIn 0.3s ease;
-            max-width: 320px;
-            display: flex; align-items: center; gap: 0.5rem;
-        }
+        /* Toast */
+        .toast-container { position: fixed; top: 1.25rem; right: 1.25rem; z-index: 999; display: flex; flex-direction: column; gap: 0.4rem; }
+        .toast { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 0.75rem 1.125rem; font-size: 0.825rem; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.35); animation: toastIn 0.3s ease; max-width: 340px; display: flex; align-items: center; gap: 0.5rem; }
         .toast.success { border-left: 3px solid var(--success); }
         .toast.error { border-left: 3px solid var(--danger); }
         @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } }
 
-        /* ── Loading ── */
-        .spinner {
-            width: 20px; height: 20px;
-            border: 2px solid var(--border);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            display: inline-block;
-        }
+        /* Loading */
+        .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
-
-        .loading-screen {
-            position: fixed; inset: 0; background: var(--bg);
-            display: flex; align-items: center; justify-content: center;
-            flex-direction: column; gap: 0.875rem; z-index: 300;
-        }
+        .loading-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 0.875rem; z-index: 300; }
         .loading-screen p { color: var(--text-muted); font-size: 0.875rem; }
-
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-        /* ══════════════════════════════════════════
-           RESPONSIVE
-           ══════════════════════════════════════════ */
         @media (max-width: 768px) {
             .sidebar { position: fixed; z-index: 50; transform: translateX(-100%); }
             .sidebar.mobile-open { transform: translateX(0); }
@@ -500,42 +250,32 @@
 </head>
 <body>
 
-<!-- Loading Screen -->
 <div class="loading-screen" id="loading-screen">
     <div class="spinner" style="width:40px;height:40px;border-width:3px;"></div>
     <p>Loading your workspace…</p>
 </div>
 
-<!-- ══ SIDEBAR ══ -->
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="logo-icon">⚡</div>
         <div class="logo-text">Task<span>Flow</span></div>
     </div>
-
     <div class="projects-section">
-        <div class="section-label">
-            <span>Projects</span>
-            <button onclick="openModal('project-create-modal')" title="New project">＋</button>
-        </div>
-        <div class="project-list" id="project-list">
-            <!-- rendered by JS -->
-        </div>
+        <div class="section-label"><span>Projects</span><button onclick="openModal('project-create-modal')" title="New project">＋</button></div>
+        <div class="project-list" id="project-list"></div>
     </div>
-
     <div class="sidebar-footer">
         <div class="user-card">
             <div class="user-avatar" id="user-avatar">—</div>
             <div class="user-meta">
                 <div class="user-name" id="user-name">Loading…</div>
-                <div class="user-email" id="user-email-display">—</div>
+                <div class="user-email-text" id="user-email-display">—</div>
             </div>
-            <button class="logout-btn" onclick="logout()" title="Logout">⏻</button>
+            <button class="logout-btn" onclick="doLogout()" title="Logout">⏻</button>
         </div>
     </div>
 </aside>
 
-<!-- ══ MAIN ══ -->
 <div class="main">
     <div class="topbar" id="topbar">
         <div class="topbar-left">
@@ -545,10 +285,7 @@
         </div>
         <div class="topbar-actions" id="topbar-actions"></div>
     </div>
-
-    <div class="content" id="content">
-        <!-- Welcome / project tasks rendered here -->
-    </div>
+    <div class="content" id="content"></div>
 </div>
 
 <!-- ══ MODALS ══ -->
@@ -557,38 +294,29 @@
 <div class="overlay" id="project-create-modal">
     <div class="modal">
         <div class="modal-title">📁 New Project</div>
-        <div class="form-group">
-            <label>Project name *</label>
-            <input class="form-control" id="new-project-name" placeholder="My awesome project" maxlength="150" />
-        </div>
+        <div class="form-group"><label>Project name *</label><input class="form-control" id="new-project-name" placeholder="My awesome project" maxlength="150" /></div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
             <button class="btn btn-primary" onclick="createProject()">Create Project</button>
         </div>
     </div>
 </div>
-
 <!-- Edit Project -->
 <div class="overlay" id="project-edit-modal">
     <div class="modal">
         <div class="modal-title">✏️ Edit Project</div>
-        <div class="form-group">
-            <label>Project name</label>
-            <input class="form-control" id="edit-project-name" maxlength="150" />
-        </div>
+        <div class="form-group"><label>Project name</label><input class="form-control" id="edit-project-name" maxlength="150" /></div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
             <button class="btn btn-primary" onclick="submitEditProject()">Save Changes</button>
         </div>
     </div>
 </div>
-
 <!-- Change Project Status -->
 <div class="overlay" id="project-status-modal">
     <div class="modal">
         <div class="modal-title">🔄 Change Project Status</div>
-        <div class="form-group">
-            <label>New status</label>
+        <div class="form-group"><label>New status</label>
             <select class="form-control" id="project-new-status">
                 <option value="active">🟢 Active</option>
                 <option value="archived">⚪ Archived</option>
@@ -601,21 +329,16 @@
         </div>
     </div>
 </div>
-
 <!-- Add User to Project -->
 <div class="overlay" id="add-user-modal">
     <div class="modal">
         <div class="modal-title">👥 Invite Collaborator</div>
-        <div class="form-group">
-            <label>Email address</label>
-            <input class="form-control" id="invite-email" type="email" placeholder="user@example.com" />
-        </div>
-        <div class="form-group">
-            <label>Role</label>
+        <div class="form-group"><label>Email address</label><input class="form-control" id="invite-email" type="email" placeholder="user@example.com" /></div>
+        <div class="form-group"><label>Role</label>
             <select class="form-control" id="invite-role">
                 <option value="viewer">👁️ Viewer — can only view</option>
                 <option value="editor">✏️ Editor — can edit tasks</option>
-                <option value="admin">👑 Admin — full control</option>
+                <option value="admin">👑 Admin — manage members</option>
             </select>
         </div>
         <div class="modal-footer">
@@ -624,39 +347,57 @@
         </div>
     </div>
 </div>
-
+<!-- Change Member Role -->
+<div class="overlay" id="change-role-modal">
+    <div class="modal">
+        <div class="modal-title">🔧 Change Member Role</div>
+        <input type="hidden" id="change-role-uid" />
+        <div class="form-group" id="change-role-email-display" style="font-size:0.85rem;color:var(--text-soft);margin-bottom:1rem;"></div>
+        <div class="form-group"><label>New role</label>
+            <select class="form-control" id="change-role-value">
+                <option value="viewer">👁️ Viewer</option>
+                <option value="editor">✏️ Editor</option>
+                <option value="admin">👑 Admin</option>
+            </select>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitChangeRole()">Update Role</button>
+        </div>
+    </div>
+</div>
+<!-- Reassign Owner -->
+<div class="overlay" id="reassign-owner-modal">
+    <div class="modal">
+        <div class="modal-title">👑 Transfer Ownership</div>
+        <p style="font-size:0.85rem;color:var(--text-soft);margin-bottom:1.25rem;">You will become an Admin after transferring ownership. This action cannot be undone easily.</p>
+        <input type="hidden" id="reassign-owner-uid" />
+        <div class="form-group" id="reassign-owner-display" style="font-size:0.9rem;font-weight:600;"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+            <button class="btn btn-warning" onclick="submitReassignOwner()">Transfer Ownership</button>
+        </div>
+    </div>
+</div>
 <!-- Create Task -->
 <div class="overlay" id="task-create-modal">
     <div class="modal">
         <div class="modal-title">✨ New Task</div>
-        <div class="form-group">
-            <label>Task name *</label>
-            <input class="form-control" id="new-task-name" placeholder="What needs to be done?" />
-        </div>
-        <div class="form-group">
-            <label>Description</label>
-            <textarea class="form-control" id="new-task-desc" placeholder="Optional details…"></textarea>
-        </div>
+        <div class="form-group"><label>Task name *</label><input class="form-control" id="new-task-name" placeholder="What needs to be done?" /></div>
+        <div class="form-group"><label>Description</label><textarea class="form-control" id="new-task-desc" placeholder="Optional details…"></textarea></div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
             <button class="btn btn-primary" onclick="createTask()">Create Task</button>
         </div>
     </div>
 </div>
-
 <!-- Edit Task -->
 <div class="overlay" id="task-edit-modal">
     <div class="modal">
         <div class="modal-title">✏️ Edit Task</div>
         <input type="hidden" id="edit-task-id" />
-        <div class="form-group">
-            <label>Task name</label>
-            <input class="form-control" id="edit-task-name" />
-        </div>
-        <div class="form-group">
-            <label>Description</label>
-            <textarea class="form-control" id="edit-task-desc"></textarea>
-        </div>
+        <div class="form-group"><label>Task name</label><input class="form-control" id="edit-task-name" /></div>
+        <div class="form-group"><label>Description</label><textarea class="form-control" id="edit-task-desc"></textarea></div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
             <button class="btn btn-primary" onclick="submitEditTask()">Save Changes</button>
@@ -664,411 +405,342 @@
     </div>
 </div>
 
-<!-- Context Menu -->
 <div class="ctx-menu" id="ctx-menu"></div>
-
-<!-- Toasts -->
 <div class="toast-container" id="toast-container"></div>
 
 <script>
-// ══════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════
+// ══ STATE ══
+const API = '/api/v1';
 let currentUser = null;
 let projects = [];
 let selectedProject = null;
 let tasks = [];
+let members = [];
 let taskFilter = 'all';
+let activeTab = 'tasks'; // 'tasks' | 'members'
 
-// ══════════════════════════════════════════
-// BOOT
-// ══════════════════════════════════════════
+// ══ BOOT ══
 async function boot() {
     try {
-        currentUser = await apiGet('/auth/me');
+        currentUser = await apiGet(`${API}/auth/me`);
         renderUser(currentUser);
         await loadProjects();
         document.getElementById('loading-screen').style.display = 'none';
         setupMobileMenu();
-    } catch {
-        goLogin();
-    }
+    } catch { goLogin(); }
 }
-
 function goLogin() { window.location.href = '/'; }
 
-// ══════════════════════════════════════════
-// API LAYER (with auto-refresh)
-// ══════════════════════════════════════════
-const API_BASE = '/api/v1';
+// ══ API LAYER (cookie-based, auto-refresh) ══
 async function apiFetch(url, options = {}) {
-    options.credentials = 'same-origin';
-    let res = await fetch(API_BASE + url, options);
+    options.credentials = 'include';
+    let res = await fetch(url, options);
     if (res.status === 401) {
-        const ok = await doRefresh();
-        if (ok) {
-            res = await fetch(API_BASE + url, options);
+        const refreshed = await doRefresh();
+        if (refreshed) {
+            res = await fetch(url, options);
+        } else {
+            goLogin();
+            return;
         }
     }
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || `HTTP ${res.status}`);
     }
-    // Some endpoints return empty (204-like)
     const text = await res.text();
     return text ? JSON.parse(text) : null;
 }
-
 async function doRefresh() {
     try {
-        const res = await fetch(API_BASE + '/auth/refresh', {
-            method: 'POST',
-            credentials: 'same-origin'
-        });
+        const res = await fetch(`${API}/auth/refresh`, { method: 'POST', credentials: 'include' });
         return res.ok;
-    } catch {}
-    return false;
+    } catch { return false; }
+}
+const apiGet = url => apiFetch(url);
+const apiPost = (url, body) => apiFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body !== undefined ? JSON.stringify(body) : undefined });
+const apiPatch = (url, body) => apiFetch(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: body !== undefined ? JSON.stringify(body) : undefined });
+const apiDel = url => apiFetch(url, { method: 'DELETE' });
+
+// ══ USER ══
+function renderUser(u) {
+    document.getElementById('user-name').textContent = u.email.split('@')[0];
+    document.getElementById('user-email-display').textContent = u.email;
+    document.getElementById('user-avatar').textContent = u.email[0].toUpperCase();
 }
 
-const apiGet   = url => apiFetch(url);
-const apiPost  = (url, body) => apiFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-const apiPatch = (url, body) => apiFetch(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
-const apiDel   = url => apiFetch(url, { method: 'DELETE' });
-
-// ══════════════════════════════════════════
-// USER
-// ══════════════════════════════════════════
-function renderUser(user) {
-    document.getElementById('user-name').textContent = user.email.split('@')[0];
-    document.getElementById('user-email-display').textContent = user.email;
-    document.getElementById('user-avatar').textContent = user.email[0].toUpperCase();
-}
-
-// ══════════════════════════════════════════
-// PROJECTS
-// ══════════════════════════════════════════
+// ══ PROJECTS ══
 async function loadProjects() {
-    projects = await apiGet('/projects/');
+    projects = await apiGet(`${API}/projects/`);
     renderProjects();
-    // If we had a selected project, refresh it; otherwise show welcome
     if (selectedProject) {
         const still = projects.find(p => p.project_public_id === selectedProject.project_public_id);
-        if (still) {
-            selectedProject = still;
-            await loadTasks();
-        } else {
-            selectedProject = null;
-            renderWelcome();
-        }
-    } else {
-        renderWelcome();
-    }
+        if (still) { selectedProject = still; await onProjectSelected(); }
+        else { selectedProject = null; renderWelcome(); }
+    } else { renderWelcome(); }
 }
-
 function renderProjects() {
     const list = document.getElementById('project-list');
-    if (!projects.length) {
-        list.innerHTML = `<div style="padding:1rem 0.5rem;color:var(--text-muted);font-size:0.8rem;text-align:center;">No projects yet.<br>Create your first one! ✨</div>`;
-        return;
-    }
+    if (!projects.length) { list.innerHTML = `<div style="padding:1rem 0.5rem;color:var(--text-muted);font-size:0.8rem;text-align:center;">No projects yet.<br>Create your first one! ✨</div>`; return; }
     list.innerHTML = projects.map(p => {
         const isActive = selectedProject && selectedProject.project_public_id === p.project_public_id;
         const dotClass = p.status === 'active' ? 'dot-active' : p.status === 'archived' ? 'dot-archived' : 'dot-suspended';
-        const roleClass = `role-${p.user_role}`;
-        return `
-        <div class="project-item ${isActive ? 'active' : ''}"
-             onclick="selectProject('${p.project_public_id}')"
-             oncontextmenu="showProjectCtx(event, '${p.project_public_id}')">
+        return `<div class="project-item ${isActive?'active':''}" onclick="selectProject('${p.project_public_id}')" oncontextmenu="showProjectCtx(event,'${p.project_public_id}')">
             <div class="project-dot ${dotClass}"></div>
-            <div class="project-info">
-                <div class="project-name">${esc(p.project_name)}</div>
-            </div>
-            <span class="project-role ${roleClass}">${p.user_role}</span>
+            <div class="project-info"><div class="project-name">${esc(p.project_name)}</div></div>
+            <span class="project-role role-${p.user_role}">${p.user_role}</span>
         </div>`;
     }).join('');
 }
-
 async function selectProject(pid) {
     selectedProject = projects.find(p => p.project_public_id === pid);
     renderProjects();
-    await loadTasks();
-    // Close mobile sidebar
+    activeTab = 'tasks';
+    await onProjectSelected();
     document.getElementById('sidebar').classList.remove('mobile-open');
 }
-
+async function onProjectSelected() {
+    await loadTasks();
+    if (canManageMembers()) { try { members = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`); } catch { members = []; } }
+    else { members = []; }
+    renderProjectView();
+}
 function renderWelcome() {
-    const content = document.getElementById('content');
     document.getElementById('topbar-title').textContent = 'Dashboard';
     document.getElementById('topbar-status').style.display = 'none';
     document.getElementById('topbar-actions').innerHTML = '';
-
-    content.innerHTML = `
-    <div class="welcome-state">
-        <div class="welcome-icon">🚀</div>
-        <h2>Welcome to TaskFlow</h2>
-        <p>${projects.length ? 'Select a project from the sidebar, or create a new one.' : 'Create your first project to get started!'}</p>
-        <button class="btn btn-primary" onclick="openModal('project-create-modal')">＋ New Project</button>
-    </div>`;
+    document.getElementById('content').innerHTML = `<div class="welcome-state"><div class="welcome-icon">🚀</div><h2>Welcome to TaskFlow</h2><p>${projects.length ? 'Select a project from the sidebar, or create a new one.' : 'Create your first project to get started!'}</p><button class="btn btn-primary" onclick="openModal('project-create-modal')">＋ New Project</button></div>`;
 }
+
+// Permissions helpers
+function myRole() { return selectedProject ? selectedProject.user_role : null; }
+function isOwner() { return myRole() === 'owner'; }
+function isAdmin() { return myRole() === 'admin' || isOwner(); }
+function isEditor() { return myRole() === 'editor' || isAdmin(); }
+function canManageMembers() { return isAdmin(); }
 
 // ── Project CRUD ──
 async function createProject() {
     const name = document.getElementById('new-project-name').value.trim();
     if (!name || name.length < 3) return toast('Project name must be at least 3 characters', 'error');
-    try {
-        await apiPost('/projects/add', { project_name: name });
-        closeModals();
-        await loadProjects();
-        toast('📁 Project created!', 'success');
-    } catch(e) { toast(e.message, 'error'); }
+    try { await apiPost(`${API}/projects/add`, { project_name: name }); closeModals(); await loadProjects(); toast('📁 Project created!', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
-
-function openEditProject() {
-    if (!selectedProject) return;
-    document.getElementById('edit-project-name').value = selectedProject.project_name;
-    closeCtx();
-    openModal('project-edit-modal');
-}
-
+function openEditProject() { if (!selectedProject) return; document.getElementById('edit-project-name').value = selectedProject.project_name; closeCtx(); openModal('project-edit-modal'); }
 async function submitEditProject() {
     const name = document.getElementById('edit-project-name').value.trim();
     if (!name || name.length < 3) return toast('Name must be at least 3 characters', 'error');
-    try {
-        await apiPatch(`/projects/update/${selectedProject.project_public_id}`, { project_name: name });
-        closeModals();
-        await loadProjects();
-        toast('✏️ Project updated!', 'success');
-    } catch(e) { toast(e.message, 'error'); }
+    try { await apiPatch(`${API}/projects/update/${selectedProject.project_public_id}`, { project_name: name }); closeModals(); await loadProjects(); toast('✏️ Project updated!', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
-
-function openChangeStatus() {
-    if (!selectedProject) return;
-    document.getElementById('project-new-status').value = selectedProject.status;
-    closeCtx();
-    openModal('project-status-modal');
-}
-
+function openChangeStatus() { if (!selectedProject) return; document.getElementById('project-new-status').value = selectedProject.status; closeCtx(); openModal('project-status-modal'); }
 async function submitChangeProjectStatus() {
-    const newStatus = document.getElementById('project-new-status').value;
-    try {
-        await apiPatch(`/projects/change-status/${selectedProject.project_public_id}?project_new_status=${newStatus}`);
-        closeModals();
-        await loadProjects();
-        toast('🔄 Status updated!', 'success');
-    } catch(e) { toast(e.message, 'error'); }
+    const s = document.getElementById('project-new-status').value;
+    try { await apiPatch(`${API}/projects/change-status/${selectedProject.project_public_id}?project_new_status=${s}`); closeModals(); await loadProjects(); toast('🔄 Status updated!', 'success'); } catch(e) { toast(e.message, 'error'); }
+}
+async function archiveProject() {
+    if (!selectedProject) return; closeCtx();
+    if (!confirm(`Archive "${selectedProject.project_name}"?`)) return;
+    try { await apiDel(`${API}/projects/delete/${selectedProject.project_public_id}`); selectedProject = null; await loadProjects(); toast('Project archived', 'success'); } catch(e) { toast(e.message, 'error'); }
+}
+async function leaveProject() {
+    if (!selectedProject) return; closeCtx();
+    if (!confirm(`Leave "${selectedProject.project_name}"?`)) return;
+    try { await apiPost(`${API}/projects/leave/${selectedProject.project_public_id}`); selectedProject = null; await loadProjects(); toast('You left the project', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
 
-async function deleteProject() {
-    if (!selectedProject) return;
-    closeCtx();
-    if (!confirm(`Archive project "${selectedProject.project_name}"? This will set it to archived.`)) return;
-    try {
-        await apiDel(`/projects/delete/${selectedProject.project_public_id}`);
-        selectedProject = null;
-        await loadProjects();
-        toast('Project archived', 'success');
-    } catch(e) { toast(e.message, 'error'); }
+async function hardDeleteProject() {
+    if (!selectedProject) return; closeCtx();
+    const name = prompt(`To permanently delete "${selectedProject.project_name}", type its name below:`);
+    if (name !== selectedProject.project_name) {
+        if (name !== null) toast('Project name did not match', 'error');
+        return;
+    }
+    try { await apiDel(`${API}/projects/hard-delete/${selectedProject.project_public_id}?project_name=${encodeURIComponent(name)}`); selectedProject = null; await loadProjects(); toast('Project permanently deleted', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
 
-function openAddUser() {
-    if (!selectedProject) return;
-    document.getElementById('invite-email').value = '';
-    document.getElementById('invite-role').value = 'viewer';
-    closeCtx();
-    openModal('add-user-modal');
+// Context menu
+function showProjectCtx(e, pid) {
+    e.preventDefault(); e.stopPropagation();
+    const p = projects.find(x => x.project_public_id === pid);
+    if (!p) return;
+    selectedProject = p; renderProjects();
+    const role = p.user_role;
+    const isO = role === 'owner'; const isA = role === 'admin' || isO; const isE = role === 'editor' || isA;
+    let items = '';
+    if (isE) items += `<button class="ctx-item" onclick="openEditProject()">✏️ Rename</button>`;
+    if (isA) {
+        items += `<button class="ctx-item" onclick="openChangeStatus()">🔄 Change Status</button>`;
+        items += `<button class="ctx-item" onclick="openAddUser()">👥 Add User</button>`;
+    }
+    if (isA) { items += `<div class="ctx-sep"></div>`; items += `<button class="ctx-item danger" onclick="archiveProject()">🗑 Archive</button>`; }
+    if (isO) { items += `<button class="ctx-item danger" onclick="hardDeleteProject()">💥 Hard Delete</button>`; }
+    if (!isO) { items += `<div class="ctx-sep"></div>`; items += `<button class="ctx-item danger" onclick="leaveProject()">🚪 Leave</button>`; }
+    if (!items) items = `<div class="ctx-item" style="cursor:default;opacity:0.5">No actions available</div>`;
+    const menu = document.getElementById('ctx-menu');
+    menu.innerHTML = items;
+    menu.style.left = Math.min(e.clientX, window.innerWidth - 210) + 'px';
+    menu.style.top = Math.min(e.clientY, window.innerHeight - 220) + 'px';
+    menu.classList.add('open');
+    setTimeout(() => document.addEventListener('click', closeCtx, { once: true }), 0);
 }
+function closeCtx() { document.getElementById('ctx-menu').classList.remove('open'); }
 
+// ══ MEMBERS ══
+function openAddUser() { 
+    if (!selectedProject) return; 
+    document.getElementById('invite-email').value = ''; 
+    const roleSelect = document.getElementById('invite-role');
+    roleSelect.innerHTML = `<option value="viewer">👁️ Viewer — can only view</option><option value="editor">✏️ Editor — can edit tasks</option>${isOwner() ? '<option value="admin">👑 Admin — manage members</option>' : ''}`;
+    roleSelect.value = 'viewer'; 
+    closeCtx(); 
+    openModal('add-user-modal'); 
+}
 async function submitAddUser() {
     const email = document.getElementById('invite-email').value.trim();
     const role = document.getElementById('invite-role').value;
     if (!email) return toast('Email is required', 'error');
-    try {
-        await apiPost(`/projects/add-user/${selectedProject.project_public_id}`, { email, user_role: role });
-        closeModals();
-        toast('👥 User added to project!', 'success');
-    } catch(e) { toast(e.message, 'error'); }
+    try { await apiPost(`${API}/projects/add-user/${selectedProject.project_public_id}`, { email, user_role: role }); closeModals(); members = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`); renderProjectView(); toast('👥 User added!', 'success'); } catch(e) { toast(e.message, 'error'); }
+}
+async function removeMember(uid) {
+    if (!confirm('Remove this member from the project?')) return;
+    try { await apiDel(`${API}/projects/delete-member/${selectedProject.project_public_id}/${uid}`); members = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`); renderProjectView(); toast('Member removed', 'success'); } catch(e) { toast(e.message, 'error'); }
+}
+function openChangeRole(uid, email, currentRole) {
+    document.getElementById('change-role-uid').value = uid;
+    document.getElementById('change-role-email-display').textContent = `Changing role for: ${email}`;
+    const roleSelect = document.getElementById('change-role-value');
+    roleSelect.innerHTML = `<option value="viewer">👁️ Viewer</option><option value="editor">✏️ Editor</option>${isOwner() ? '<option value="admin">👑 Admin</option>' : ''}`;
+    roleSelect.value = currentRole;
+    openModal('change-role-modal');
+}
+async function submitChangeRole() {
+    const uid = document.getElementById('change-role-uid').value;
+    const role = document.getElementById('change-role-value').value;
+    try { await apiPatch(`${API}/projects/change-role/${selectedProject.project_public_id}`, { user_public_id: uid, user_role: role }); closeModals(); members = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`); await loadProjects(); renderProjectView(); toast('🔧 Role updated!', 'success'); } catch(e) { toast(e.message, 'error'); }
+}
+function openReassignOwner(uid, email) {
+    document.getElementById('reassign-owner-uid').value = uid;
+    document.getElementById('reassign-owner-display').textContent = `New owner: ${email}`;
+    openModal('reassign-owner-modal');
+}
+async function submitReassignOwner() {
+    const uid = document.getElementById('reassign-owner-uid').value;
+    try { await apiPatch(`${API}/projects/reassign-owner/${selectedProject.project_public_id}/${uid}`); closeModals(); await loadProjects(); toast('👑 Ownership transferred!', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
 
-// ── Context Menu (right-click on project) ──
-function showProjectCtx(e, pid) {
-    e.preventDefault();
-    e.stopPropagation();
-    const p = projects.find(x => x.project_public_id === pid);
-    if (!p) return;
-    // Make this project selected for context operations
-    selectedProject = p;
-    renderProjects();
-
-    const isAdmin = p.user_role === 'admin';
-    const isEditor = p.user_role === 'editor' || isAdmin;
-
-    const menu = document.getElementById('ctx-menu');
-    let items = '';
-
-    if (isEditor) {
-        items += `<button class="ctx-item" onclick="openEditProject()">✏️ Rename</button>`;
-    }
-    if (isAdmin) {
-        items += `<button class="ctx-item" onclick="openChangeStatus()">🔄 Change Status</button>`;
-        items += `<button class="ctx-item" onclick="openAddUser()">👥 Add User</button>`;
-        items += `<div class="ctx-sep"></div>`;
-        items += `<button class="ctx-item danger" onclick="deleteProject()">🗑 Archive</button>`;
-    }
-
-    if (!items) {
-        items = `<div class="ctx-item" style="cursor:default;opacity:0.5">No actions available</div>`;
-    }
-
-    menu.innerHTML = items;
-
-    // Position
-    const x = Math.min(e.clientX, window.innerWidth - 200);
-    const y = Math.min(e.clientY, window.innerHeight - 200);
-    menu.style.left = x + 'px';
-    menu.style.top = y + 'px';
-    menu.classList.add('open');
-
-    setTimeout(() => document.addEventListener('click', closeCtx, { once: true }), 0);
-}
-
-function closeCtx() {
-    document.getElementById('ctx-menu').classList.remove('open');
-}
-
-// ══════════════════════════════════════════
-// TASKS
-// ══════════════════════════════════════════
+// ══ TASKS ══
 async function loadTasks() {
     if (!selectedProject) return;
-    const pid = selectedProject.project_public_id;
-    try {
-        tasks = await apiGet(`/projects/${pid}/tasks/`);
-    } catch {
-        tasks = [];
-    }
-    renderProjectView();
+    try { tasks = await apiGet(`${API}/projects/${selectedProject.project_public_id}/tasks/`); } catch { tasks = []; }
 }
-
 function renderProjectView() {
     const p = selectedProject;
     if (!p) return renderWelcome();
-
-    // Topbar
     document.getElementById('topbar-title').textContent = p.project_name;
     const statusEl = document.getElementById('topbar-status');
-    statusEl.style.display = 'inline';
-    statusEl.textContent = p.status;
+    statusEl.style.display = 'inline'; statusEl.textContent = p.status;
     statusEl.className = `topbar-status status-${p.status}`;
+    const acts = [];
+    if (canManageMembers()) acts.push(`<button class="btn btn-ghost btn-sm" onclick="openAddUser()">👥 Invite</button>`);
+    if (isEditor()) acts.push(`<button class="btn btn-primary btn-sm" onclick="openModal('task-create-modal')">＋ New Task</button>`);
+    document.getElementById('topbar-actions').innerHTML = acts.join('');
 
-    const isAdmin = p.user_role === 'admin';
-    const isEditor = p.user_role === 'editor' || isAdmin;
-
-    // Topbar actions
-    const actionsHtml = [];
-    if (isAdmin) {
-        actionsHtml.push(`<button class="btn btn-ghost btn-sm" onclick="openAddUser()">👥 Invite</button>`);
-    }
-    if (isEditor) {
-        actionsHtml.push(`<button class="btn btn-primary btn-sm" onclick="openModal('task-create-modal')">＋ New Task</button>`);
-    }
-    document.getElementById('topbar-actions').innerHTML = actionsHtml.join('');
-
-    // Content
     const content = document.getElementById('content');
-    const total = tasks.length;
-    const done = tasks.filter(t => t.status).length;
-    const active = total - done;
+    const total = tasks.length, done = tasks.filter(t => t.status).length, active = total - done;
+    const showMemberTab = canManageMembers();
 
-    content.innerHTML = `
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">Total Tasks</div>
-            <div class="stat-value stat-primary">${total}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Completed</div>
-            <div class="stat-value stat-success">${done}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">In Progress</div>
-            <div class="stat-value stat-warning">${active}</div>
-        </div>
-    </div>
+    let html = `<div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total Tasks</div><div class="stat-value stat-primary">${total}</div></div>
+        <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-value stat-success">${done}</div></div>
+        <div class="stat-card"><div class="stat-label">In Progress</div><div class="stat-value stat-warning">${active}</div></div>
+    </div>`;
 
-    <div class="content-header">
-        <div class="content-title" id="filter-label">All Tasks</div>
+    if (showMemberTab) {
+        html += `<div class="view-tabs">
+            <button class="view-tab ${activeTab==='tasks'?'active':''}" onclick="switchViewTab('tasks')">📋 Tasks</button>
+            <button class="view-tab ${activeTab==='members'?'active':''}" onclick="switchViewTab('members')">👥 Members (${members.length})</button>
+        </div>`;
+    }
+
+    html += `<div id="tab-content"></div>`;
+    content.innerHTML = html;
+
+    if (activeTab === 'tasks') renderTasksTab();
+    else renderMembersTab();
+}
+function switchViewTab(tab) { activeTab = tab; renderProjectView(); }
+
+function renderTasksTab() {
+    const container = document.getElementById('tab-content');
+    const labels = { all: 'All Tasks', active: 'In Progress', done: 'Completed' };
+    let html = `<div class="content-header"><div class="content-title">${labels[taskFilter]}</div>
         <div class="filter-pills">
             <button class="filter-pill ${taskFilter==='all'?'active':''}" onclick="setFilter('all')">All</button>
             <button class="filter-pill ${taskFilter==='active'?'active':''}" onclick="setFilter('active')">Active</button>
             <button class="filter-pill ${taskFilter==='done'?'active':''}" onclick="setFilter('done')">Done</button>
-        </div>
-    </div>
-
-    <div class="tasks-grid" id="tasks-grid"></div>`;
-
+        </div></div><div class="tasks-grid" id="tasks-grid"></div>`;
+    container.innerHTML = html;
     renderTaskCards();
 }
-
-function setFilter(f) {
-    taskFilter = f;
-    const labels = { all: 'All Tasks', active: 'In Progress', done: 'Completed' };
-    const labelEl = document.getElementById('filter-label');
-    if (labelEl) labelEl.textContent = labels[f];
-    // Re-render filter pills
-    document.querySelectorAll('.filter-pill').forEach(btn => {
-        btn.classList.toggle('active', btn.textContent.toLowerCase() === (f === 'active' ? 'active' : f === 'done' ? 'done' : 'all'));
-    });
-    renderTaskCards();
-}
-
+function setFilter(f) { taskFilter = f; renderTasksTab(); }
 function getFiltered() {
     if (taskFilter === 'done') return tasks.filter(t => t.status);
     if (taskFilter === 'active') return tasks.filter(t => !t.status);
     return tasks;
 }
-
 function renderTaskCards() {
     const grid = document.getElementById('tasks-grid');
     if (!grid) return;
     const list = getFiltered();
-    const p = selectedProject;
-    const isAdmin = p.user_role === 'admin';
-    const isEditor = p.user_role === 'editor' || isAdmin;
-
-    if (!list.length) {
-        grid.innerHTML = `
-        <div class="empty-state">
-            <div class="empty-icon">📭</div>
-            <h3>No tasks here</h3>
-            <p>${isEditor ? 'Create your first task using the button above.' : 'No tasks to show in this view.'}</p>
-        </div>`;
-        return;
-    }
-
+    if (!list.length) { grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><h3>No tasks here</h3><p>${isEditor() ? 'Create your first task using the button above.' : 'No tasks to show.'}</p></div>`; return; }
     grid.innerHTML = list.map(t => {
-        const statusBadge = t.status
-            ? `<span class="badge badge-done">✓ Done</span>`
-            : `<span class="badge badge-todo">⏳ Todo</span>`;
-
-        const actions = [];
-        if (isEditor) {
-            actions.push(`<button class="icon-btn check" onclick="toggleTask(event,'${t.task_public_id}')" title="Toggle status">✓</button>`);
-            actions.push(`<button class="icon-btn edit" onclick="openEditTask(event,'${t.task_public_id}')" title="Edit">✎</button>`);
-            actions.push(`<button class="icon-btn del" onclick="deleteTask(event,'${t.task_public_id}')" title="Delete">✕</button>`);
+        const sb = t.status ? `<span class="badge badge-done">✓ Done</span>` : `<span class="badge badge-todo">⏳ Todo</span>`;
+        const btns = [];
+        if (isEditor()) {
+            btns.push(`<button class="icon-btn check" onclick="toggleTask(event,'${t.task_public_id}')" title="Toggle">✓</button>`);
+            btns.push(`<button class="icon-btn edit" onclick="openEditTask(event,'${t.task_public_id}')" title="Edit">✎</button>`);
+            btns.push(`<button class="icon-btn del" onclick="deleteTask(event,'${t.task_public_id}')" title="Delete">✕</button>`);
         }
-
-        return `
-        <div class="task-card ${t.status ? 'done' : ''}">
-            <div class="task-top">
-                <div class="task-title ${t.status ? 'crossed' : ''}">${esc(t.task_name)}</div>
-                ${statusBadge}
-            </div>
+        return `<div class="task-card ${t.status?'done':''}">
+            <div class="task-top"><div class="task-title ${t.status?'crossed':''}">${esc(t.task_name)}</div>${sb}</div>
             <div class="task-desc">${t.description ? esc(t.description) : '<span style="font-style:italic;opacity:0.5">No description</span>'}</div>
-            <div class="task-bottom">
-                ${actions.join('')}
-            </div>
+            <div class="task-bottom">${btns.join('')}</div>
         </div>`;
     }).join('');
+}
+
+function renderMembersTab() {
+    const container = document.getElementById('tab-content');
+    if (!members.length) { container.innerHTML = `<div class="empty-state"><div class="empty-icon">👤</div><h3>No members loaded</h3><p>Could not load members list.</p></div>`; return; }
+
+    const roleOrder = { owner: 0, admin: 1, editor: 2, viewer: 3 };
+    const sorted = [...members].sort((a, b) => (roleOrder[a.user_role] ?? 99) - (roleOrder[b.user_role] ?? 99));
+
+    let rows = sorted.map(m => {
+        const isSelf = m.public_id === currentUser.public_id;
+        const memberRole = m.user_role;
+        const roleClass = `role-${memberRole}`;
+        const actions = [];
+        // Owner can change any non-owner role, admin can change editor/viewer
+        if (!isSelf && memberRole !== 'owner') {
+            if (isOwner() || (isAdmin() && (memberRole === 'editor' || memberRole === 'viewer'))) {
+                actions.push(`<button class="icon-btn edit" onclick="openChangeRole('${m.public_id}','${esc(m.email)}','${memberRole}')" title="Change role">🔧</button>`);
+                actions.push(`<button class="icon-btn del" onclick="removeMember('${m.public_id}')" title="Remove">✕</button>`);
+            }
+            if (isOwner()) {
+                actions.push(`<button class="icon-btn" onclick="openReassignOwner('${m.public_id}','${esc(m.email)}')" title="Make owner" style="font-size:0.7rem">👑</button>`);
+            }
+        }
+        return `<tr>
+            <td class="member-email">${esc(m.email)}${isSelf ? ' <span style="opacity:0.4;font-size:0.7rem">(you)</span>' : ''}</td>
+            <td><span class="member-role-badge ${roleClass}">${memberRole}</span></td>
+            <td><div class="member-actions">${actions.join('')}</div></td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `<div class="members-wrapper"><table class="members-table">
+        <thead><tr><th>Email</th><th>Role</th><th style="text-align:right">Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+    </table></div>`;
 }
 
 // ── Task CRUD ──
@@ -1076,91 +748,43 @@ async function createTask() {
     const name = document.getElementById('new-task-name').value.trim();
     const desc = document.getElementById('new-task-desc').value.trim();
     if (!name) return toast('Task name is required', 'error');
-    try {
-        await apiPost(`/projects/${selectedProject.project_public_id}/tasks/`, {
-            task_name: name,
-            description: desc || null
-        });
-        closeModals();
-        await loadTasks();
-        toast('✨ Task created!', 'success');
-    } catch(e) { toast(e.message, 'error'); }
+    try { await apiPost(`${API}/projects/${selectedProject.project_public_id}/tasks/`, { task_name: name, description: desc || null }); closeModals(); await loadTasks(); renderProjectView(); toast('✨ Task created!', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
-
 function openEditTask(e, tid) {
     e.stopPropagation();
-    const t = tasks.find(x => x.task_public_id === tid);
-    if (!t) return;
+    const t = tasks.find(x => x.task_public_id === tid); if (!t) return;
     document.getElementById('edit-task-id').value = tid;
     document.getElementById('edit-task-name').value = t.task_name;
     document.getElementById('edit-task-desc').value = t.description || '';
     openModal('task-edit-modal');
 }
-
 async function submitEditTask() {
     const tid = document.getElementById('edit-task-id').value;
     const name = document.getElementById('edit-task-name').value.trim();
     const desc = document.getElementById('edit-task-desc').value.trim();
     if (!name) return toast('Task name is required', 'error');
-    try {
-        await apiPatch(`/projects/${selectedProject.project_public_id}/tasks/${tid}`, {
-            task_name: name,
-            description: desc || null
-        });
-        closeModals();
-        await loadTasks();
-        toast('✏️ Task updated!', 'success');
-    } catch(e) { toast(e.message, 'error'); }
+    try { await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}`, { task_name: name, description: desc || null }); closeModals(); await loadTasks(); renderProjectView(); toast('✏️ Task updated!', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
-
 async function toggleTask(e, tid) {
     e.stopPropagation();
-    try {
-        await apiPatch(`/projects/${selectedProject.project_public_id}/tasks/${tid}/change-status`);
-        const t = tasks.find(x => x.task_public_id === tid);
-        if (t) t.status = !t.status;
-        renderProjectView();
-        toast('✓ Status updated', 'success');
-    } catch(e) { toast(e.message, 'error'); }
+    try { await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/change-status`); const t = tasks.find(x => x.task_public_id === tid); if (t) t.status = !t.status; renderProjectView(); toast('✓ Status updated', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
-
 async function deleteTask(e, tid) {
     e.stopPropagation();
-    if (!confirm('Delete this task? This cannot be undone.')) return;
-    try {
-        await apiDel(`/projects/${selectedProject.project_public_id}/tasks/${tid}`);
-        tasks = tasks.filter(t => t.task_public_id !== tid);
-        renderProjectView();
-        toast('Task deleted', 'success');
-    } catch(e) { toast(e.message, 'error'); }
+    if (!confirm('Delete this task?')) return;
+    try { await apiDel(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}`); tasks = tasks.filter(t => t.task_public_id !== tid); renderProjectView(); toast('Task deleted', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
 
-// ══════════════════════════════════════════
-// UTILITIES
-// ══════════════════════════════════════════
-function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
+// ══ UTILS ══
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function openModal(id) {
-    // Reset inputs inside modal
-    const modal = document.getElementById(id);
-    if (id === 'task-create-modal') {
-        document.getElementById('new-task-name').value = '';
-        document.getElementById('new-task-desc').value = '';
-    } else if (id === 'project-create-modal') {
-        document.getElementById('new-project-name').value = '';
-    }
-    modal.classList.add('open');
+    if (id === 'task-create-modal') { document.getElementById('new-task-name').value = ''; document.getElementById('new-task-desc').value = ''; }
+    else if (id === 'project-create-modal') { document.getElementById('new-project-name').value = ''; }
+    document.getElementById(id).classList.add('open');
 }
-
-function closeModals() {
-    document.querySelectorAll('.overlay').forEach(o => o.classList.remove('open'));
-}
-
-document.querySelectorAll('.overlay').forEach(o => {
-    o.addEventListener('click', e => { if (e.target === o) closeModals(); });
-});
+function closeModals() { document.querySelectorAll('.overlay').forEach(o => o.classList.remove('open')); }
+document.querySelectorAll('.overlay').forEach(o => { o.addEventListener('click', e => { if (e.target === o) closeModals(); }); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModals(); closeCtx(); } });
-
 function toast(msg, type = 'success') {
     const el = document.createElement('div');
     el.className = `toast ${type}`;
@@ -1168,34 +792,18 @@ function toast(msg, type = 'success') {
     document.getElementById('toast-container').appendChild(el);
     setTimeout(() => el.remove(), 3500);
 }
-
-async function logout() {
-    try {
-        await fetch(API_BASE + '/auth/logout', {
-            method: 'POST',
-            credentials: 'same-origin'
-        });
-    } catch(e) {
-        console.error(e);
-    }
+async function doLogout() {
+    try { await apiPost(`${API}/auth/logout`); } catch {}
     window.location.href = '/';
 }
-
 function setupMobileMenu() {
     const mql = window.matchMedia('(max-width: 768px)');
     const btn = document.getElementById('mobile-menu-btn');
     function check(e) { btn.style.display = e.matches ? 'inline-flex' : 'none'; }
-    check(mql);
-    mql.addEventListener('change', check);
+    check(mql); mql.addEventListener('change', check);
 }
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('mobile-open'); }
 
-function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('mobile-open');
-}
-
-// ══════════════════════════════════════════
-// BOOT
-// ══════════════════════════════════════════
 boot();
 </script>
 </body>

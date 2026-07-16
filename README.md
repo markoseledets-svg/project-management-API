@@ -7,8 +7,10 @@ A REST API for managing projects and tasks with JWT authentication and role-base
 ## Features
 
 - User registration and login (JWT access + refresh tokens stored in HTTP-only cookies with rotation)
-- Project management — create, update, change status, soft-delete
-- Multi-user collaboration — invite users to projects by email, assign roles (admin / editor / viewer)
+- Project management — create, update, change status, soft-delete, hard-delete with name confirmation
+- Multi-user collaboration — invite users to projects by email, assign roles (owner / admin / editor / viewer)
+- Membership management — remove members, change roles, leave project, transfer ownership
+- Role hierarchy enforcement — owner > admin > editor > viewer, each level can only manage roles below them
 - Task management — create, update, toggle completion, delete, scoped to a project
 - RBAC — every operation is verified against the user's role in the project
 - Swagger UI available at `/docs` in development mode
@@ -192,7 +194,8 @@ Swagger UI: `http://localhost:8000/docs` (only when `ENV=development`)
 - [ ] User CRUD (profile update, account management)
 - [x] Email verification on registration (OTP via SMTP)
 - [ ] Task priority and sorting
-- [ ] Extended project member management (update roles, remove members)
+- [x] Project member management (invite, remove, change roles, leave, ownership transfer)
+- [x] Hard delete with project name confirmation and archived status check
 
 #### Infrastructure
 - [x] Redis for Rate Limiting, OTP storage, and Token Blacklisting

@@ -26,7 +26,7 @@ class TaskService:
         await self.permission_service.verify_user_role(
                                     curr_user_id,
                                     project_public_id,
-                                    allowed_roles=(UserRole.ADMIN,UserRole.EDITOR,)
+                                    allowed_roles=(UserRole.OWNER, UserRole.ADMIN,UserRole.EDITOR,)
                                     )
         new_task = TaskModel(
                             project_public_id = project_public_id,
@@ -44,7 +44,9 @@ class TaskService:
         await self.permission_service.verify_user_role(
                                     curr_user_id,
                                     project_public_id,
-                                    allowed_roles=(UserRole.ADMIN,
+                                    allowed_roles=(
+                                                   UserRole.OWNER, 
+                                                   UserRole.ADMIN,
                                                    UserRole.EDITOR,
                                                    UserRole.VIEWER,
                                                    )
@@ -74,7 +76,7 @@ class TaskService:
         await self.permission_service.verify_user_role(
                                  curr_user_id,
                                  project_public_id,
-                                 allowed_roles = (UserRole.EDITOR,UserRole.ADMIN,)
+                                 allowed_roles = (UserRole.OWNER, UserRole.EDITOR,UserRole.ADMIN,)
                                 )
         task_data = await self.get_task_by_id(task_public_id, project_public_id)
         self.task_repo.update(task_data,update_model)
@@ -91,7 +93,7 @@ class TaskService:
         await self.permission_service.verify_user_role(
                                  user_public_id,
                                  project_public_id,
-                                 allowed_roles = (UserRole.ADMIN,UserRole.EDITOR,)
+                                 allowed_roles = (UserRole.OWNER, UserRole.ADMIN,UserRole.EDITOR,)
                                 )
         task_data = await self.get_task_by_id(task_public_id, project_public_id)
         await self.session.delete(task_data)
@@ -107,7 +109,7 @@ class TaskService:
         await self.permission_service.verify_user_role(
                                  curr_user_id,
                                  project_public_id,
-                                 allowed_roles = (UserRole.EDITOR,UserRole.ADMIN,)
+                                 allowed_roles = (UserRole.OWNER, UserRole.EDITOR,UserRole.ADMIN,)
                                 )
         task = await self.get_task_by_id(task_public_id, project_public_id)
         task.status = not task.status

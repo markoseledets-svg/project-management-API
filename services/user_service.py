@@ -20,7 +20,7 @@ from core.security import (
     )
 from utils.logger import logger
 from core.exceptions import (
-    UserAlreadyExistsError, 
+    ConflictError, 
     AuthFailedError, 
     NotFoundError, 
     DataValidationError
@@ -44,7 +44,7 @@ class AuthServices:
                                     ) -> int:
         user_exists = await self.user_repo.check_if_user_exists(user_data.email)
         if user_exists:
-            raise UserAlreadyExistsError()
+            raise ConflictError(detail="User with this email already exists!")
         return await self.redis_client.add_user_otp(user_data)
 
     async def verify_user_registration(self, email:str, otp: str) -> None:
@@ -65,7 +65,7 @@ class AuthServices:
             logger.info(f"New user with public id:{public_user_id} was succesfully added to db!")
         except IntegrityError:
             await self.session.rollback()
-            raise UserAlreadyExistsError()
+            raise ConflictError(detail="User with this email already exists!")
     
     async def verify_user_login(self,data:UserPostModel) -> Optional[UserModel]:
         user = await self.user_repo.get_user_by_email(data.email)

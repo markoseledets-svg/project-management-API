@@ -1,5 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Index, text
 from sqlalchemy import DateTime
 from datetime import datetime, timezone, timedelta
 from typing import List
@@ -8,6 +8,7 @@ import uuid
 import uuid6
 
 class UserRole(str,Enum):
+    OWNER = "owner"
     ADMIN = "admin"
     EDITOR = "editor"
     VIEWER = "viewer"
@@ -32,8 +33,8 @@ class UserModel(Base):
     email: Mapped[str] = mapped_column(nullable=False, unique=True)
     password: Mapped[str] = mapped_column(nullable=False)
     
-    tokens: Mapped[List["RefreshTokenModel"]] = relationship(back_populates="user")
-    project_relation: Mapped[List["UserProjectRelation"]] = relationship(back_populates="user_relation")
+    tokens: Mapped[List["RefreshTokenModel"]] = relationship(back_populates="user", passive_deletes=True)
+    project_relation: Mapped[List["UserProjectRelation"]] = relationship(back_populates="user_relation", passive_deletes=True)
 
 class RefreshTokenModel(Base):
     __tablename__ = "refresh_tokens"
@@ -104,12 +105,18 @@ class ProjectModel(Base):
                                                     onupdate= lambda: datetime.now(timezone.utc),
                                                     default=lambda: datetime.now(timezone.utc)
                                                 )
-    user_relation: Mapped[List["UserProjectRelation"]] = relationship(back_populates="project_relation")
-    task_relation: Mapped[List["TaskModel"]] = relationship(back_populates="project_relation")
+    user_relation: Mapped[List["UserProjectRelation"]] = relationship(back_populates="project_relation", passive_deletes=True)
+    task_relation: Mapped[List["TaskModel"]] = relationship(back_populates="project_relation", passive_deletes=True)
 
 class UserProjectRelation(Base):
     __tablename__ = "user_project_relation"
-    
+    __table_args__ = (
+        Index(
+        "ix_unique_owner_per_project", 
+        "project_public_id", 
+        unique=True, 
+        postgresql_where=text("user_role = 'OWNER'")),
+    )
     user_public_id: Mapped[uuid.UUID] = mapped_column(
                                                         ForeignKey("users.public_id", ondelete="CASCADE"),
                                                         primary_key=True

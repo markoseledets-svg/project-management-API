@@ -17,17 +17,17 @@ class NotFoundError(AppBaseError):
     def __init__(self, status_code=404, detail="Not found!"):
         super().__init__(status_code, detail)
 
-class UserAlreadyExistsError(AppBaseError):
-    def __init__(self, status_code=409, detail="User with this email already exists!"):
+class ConflictError(AppBaseError):
+    def __init__(self, status_code=409, detail="Conflict!"):
         super().__init__(status_code, detail)
 
 class DataValidationError(AppBaseError):
-    def __init__(self, status_code=422, detail="Invalid data fromat!"):
+    def __init__(self, status_code=422, detail="Invalid data format!"):
         super().__init__(status_code, detail)
 
 class GoneError(AppBaseError):
     def __init__(self, status_code=410, detail="Resource is not available!"):
         super().__init__(status_code, detail)
 class ToManyRequestsError(AppBaseError):
-    def __init__(self, status_code=429, detail="To many requests!"):
+    def __init__(self, status_code=429, detail="Too many requests!"):
         super().__init__(status_code, detail)

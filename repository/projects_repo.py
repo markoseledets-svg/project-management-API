@@ -1,11 +1,11 @@
-from sqlalchemy import select
+from sqlalchemy import select, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
 from typing import List,Optional
 from repository.base_repo import BaseRepository
-from database.db_model import UserProjectRelation, ProjectModel
-from schemas.project_schemas import ProjectWithRoleGetModel
+from database.db_model import UserProjectRelation, ProjectModel, UserModel
+from schemas.project_schemas import ProjectWithRoleGetModel, GetUserDataWithRole
 
 class ProjectsRepository(BaseRepository[ProjectModel]):
     def __init__(self, session:AsyncSession):
@@ -45,3 +45,34 @@ class UserProjectRepository(BaseRepository[UserProjectRelation]):
                                                )
                                         )
         return obj_role.scalar_one_or_none()
+    
+    async def get_user_data_with_roles(
+                                    self, 
+                                    project_public_id: uuid.UUID
+                                    ) -> Optional[List[GetUserDataWithRole]]:
+        project_users_obj = await self.session.execute(
+            select(UserModel.public_id, UserModel.email, UserProjectRelation.user_role).join(
+            UserProjectRelation, 
+            and_(UserModel.public_id == UserProjectRelation.user_public_id,
+            UserProjectRelation.project_public_id == project_public_id))
+            )
+        user_data_with_roles = []
+        for public_id, email, role in project_users_obj.all():
+            user_data_with_roles.append({"public_id":public_id,"email":email, "user_role":role})
+        return user_data_with_roles
+    
+    async def get_relation_data(
+                                self,
+                                user_public_id:uuid.UUID,
+                                project_public_id:uuid.UUID
+                                ) -> Optional[UserProjectRelation]:
+        return await self.get_by(user_public_id=user_public_id, project_public_id=project_public_id)
+    
+    async def count_project_users(
+                                    self,
+                                    project_public_id: uuid.UUID
+                                ) -> int:
+        return await self.session.scalar(select(func.count())
+        .select_from(UserProjectRelation)
+        .where(UserProjectRelation.project_public_id == project_public_id)
+        )

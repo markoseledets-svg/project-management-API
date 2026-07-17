@@ -554,7 +554,7 @@ async function hardDeleteProject() {
         if (name !== null) toast('Project name did not match', 'error');
         return;
     }
-    try { await apiDel(`${API}/projects/hard-delete/${selectedProject.project_public_id}?project_name=${encodeURIComponent(name)}`); selectedProject = null; await loadProjects(); toast('Project permanently deleted', 'success'); } catch(e) { toast(e.message, 'error'); }
+    try { await apiFetch(`${API}/projects/hard-delete/${selectedProject.project_public_id}`, { method: 'DELETE', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({project_name: name}) }); selectedProject = null; await loadProjects(); toast('Project permanently deleted', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
 
 // Context menu

@@ -9,7 +9,7 @@ async def test_add_new_task(test_client, test_project_id, auth_cookies):
         json=task_data,
         cookies=auth_cookies
     )
-    assert task_response.status_code == 200
+    assert task_response.status_code == 201
 
 @pytest.mark.asyncio
 async def test_add_empty_task(test_client, test_project_id, auth_cookies):
@@ -53,7 +53,7 @@ async def test_task_delete(test_client, test_project_id, auth_cookies, test_task
         f"/api/v1/projects/{test_project_id}/tasks/{test_task_id}",
         cookies=auth_cookies
     )
-    assert get_tasks_response.status_code == 200
+    assert get_tasks_response.status_code == 204
 
 @pytest.mark.asyncio
 async def test_task_not_found(test_client, test_project_id, auth_cookies):

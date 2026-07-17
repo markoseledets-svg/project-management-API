@@ -9,7 +9,7 @@ async def test_add_new_project(test_client, auth_cookies):
        cookies=auth_cookies,
         json=project_data
     )
-    assert add_response.status_code == 200
+    assert add_response.status_code == 201
 
 @pytest.mark.asyncio
 async def test_get_projects(test_client, auth_cookies):
@@ -52,7 +52,7 @@ async def test_add_user_to_project(test_client, auth_cookies, test_project_id, t
         json=new_relation_data,
         cookies=auth_cookies
     )
-    assert post_relation_request.status_code == 200
+    assert post_relation_request.status_code == 201
 
 @pytest.mark.asyncio
 async def test_get_project_members(test_client, auth_cookies, test_project_id):
@@ -81,7 +81,7 @@ async def test_change_user_role(test_client, auth_cookies, test_project_id, proj
         json=new_role_data,
         cookies=auth_cookies
     )
-    assert update_response.status_code == 200
+    assert update_response.status_code == 204
 
 @pytest.mark.asyncio
 async def test_owner_leave_from_project(test_client, test_project_id, auth_cookies):
@@ -97,7 +97,7 @@ async def test_assign_new_owner(test_client, test_project_id, auth_cookies, proj
         f"/api/v1/projects/reassign-owner/{test_project_id}/{project_user_id}",
         cookies=auth_cookies
     )
-    assert assign_response.status_code == 200
+    assert assign_response.status_code == 204
 
 @pytest.mark.asyncio
 async def test_user_leave_from_project(test_client, auth_cookies):
@@ -107,7 +107,7 @@ async def test_user_leave_from_project(test_client, auth_cookies):
         cookies=auth_cookies,
         json=new_project_data
     )
-    assert add_response.status_code == 200
+    assert add_response.status_code == 201
 
     get_project_id = await test_client.get(
         "/api/v1/projects/",
@@ -121,7 +121,7 @@ async def test_user_leave_from_project(test_client, auth_cookies):
         f"/api/v1/projects/leave/{project['project_public_id']}",
         cookies=auth_cookies
         )
-    assert leave_response.status_code == 200
+    assert leave_response.status_code == 204
 
 @pytest.mark.asyncio
 async def test_project_not_found(test_client, auth_cookies):
@@ -151,7 +151,7 @@ async def test_hard_deletion(test_client, auth_cookies):
         cookies=auth_cookies,
         json=new_project_data
     )
-    assert add_response.status_code == 200
+    assert add_response.status_code == 201
 
     get_project_id = await test_client.get(
         "/api/v1/projects/",
@@ -167,12 +167,13 @@ async def test_hard_deletion(test_client, auth_cookies):
     )
     assert soft_delete_response.status_code == 200
 
-    hard_delete_response = await test_client.delete(
+    hard_delete_response = await test_client.request(
+        "DELETE",
         f"/api/v1/projects/hard-delete/{project['project_public_id']}",
-        params={"project_name":"test_delete_project"},
+        json={"project_name":"test_delete_project"},
         cookies=auth_cookies
     )
-    assert hard_delete_response.status_code == 200
+    assert hard_delete_response.status_code == 204
 
 @pytest.mark.asyncio
 async def test_user_self_delete(test_client, auth_cookies, test_project_user, project_user_id):
@@ -182,7 +183,7 @@ async def test_user_self_delete(test_client, auth_cookies, test_project_user, pr
         cookies=auth_cookies,
         json=new_project_data
     )
-    assert add_response.status_code == 200
+    assert add_response.status_code == 201
 
     get_project_id = await test_client.get(
         "/api/v1/projects/",
@@ -196,11 +197,10 @@ async def test_user_self_delete(test_client, auth_cookies, test_project_user, pr
         json={"email":test_project_user["email"], "user_role":"admin"},
         cookies = auth_cookies
     )
-    assert add_user_response.status_code == 200
+    assert add_user_response.status_code == 201
 
     delete_user_response = await test_client.delete(
-       f"/api/v1/projects/delete-member/{project["project_public_id"]}/{project_user_id}",
+       f"/api/v1/projects/delete-member/{project['project_public_id']}/{project_user_id}",
         cookies = auth_cookies
     )
-    assert delete_user_response.status_code == 200
-
+    assert delete_user_response.status_code == 204

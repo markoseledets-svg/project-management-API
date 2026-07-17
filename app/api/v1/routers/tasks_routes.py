@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends
 import uuid
+from typing import List
 
-from schemas.task_schemas import PostTaskModel,UpdateTaskModel
+from schemas.task_schemas import PostTaskModel,UpdateTaskModel, GetTaskModel
 from schemas.login_schemas import UserGetModel
 from app.api.dependencies.db_dependencies import get_current_user, TaskServiceDep
 router = APIRouter(tags=["Tasks"])
 
-@router.post("/")
+@router.post("/", status_code=201)
 async def add_task(
                     task_data: PostTaskModel,
                     project_public_id: uuid.UUID,
@@ -15,7 +16,7 @@ async def add_task(
                     ):
     return await service.add_new_task(task_data, user.public_id, project_public_id)
 
-@router.get("/")
+@router.get("/", response_model=List[GetTaskModel])
 async def get_user_project_tasks(
                         service: TaskServiceDep,
                         project_public_id: uuid.UUID,
@@ -23,7 +24,7 @@ async def get_user_project_tasks(
                         ):
     return await service.get_curr_user_project_tasks(user.public_id, project_public_id)
 
-@router.patch("/{task_public_id}")
+@router.patch("/{task_public_id}", response_model=GetTaskModel)
 async def update_user_task(
                             project_public_id: uuid.UUID,
                             task_public_id: uuid.UUID,
@@ -38,7 +39,7 @@ async def update_user_task(
                                         project_public_id
                                     )
 
-@router.patch("/{task_public_id}/change-status")
+@router.patch("/{task_public_id}/change-status", response_model=GetTaskModel)
 async def change_task_status(
                             project_public_id: uuid.UUID,
                             task_public_id: uuid.UUID,
@@ -47,7 +48,7 @@ async def change_task_status(
                             ):
     return await service.change_completed_status(user.public_id, task_public_id, project_public_id)
 
-@router.delete("/{task_public_id}")
+@router.delete("/{task_public_id}", status_code=204)
 async def delete_user_task(
                             task_public_id: uuid.UUID,
                             project_public_id: uuid.UUID,

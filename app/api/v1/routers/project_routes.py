@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends
-from typing import List
+from fastapi import APIRouter, Depends, Body
+from typing import List, Annotated
 import uuid
 
 from database.db_model import ProjectStatus
@@ -11,7 +11,7 @@ from schemas.project_schemas import (
     ProjectUpdateModel, 
     PostNewRelation,
     GetUserDataWithRole,
-    UpdateUserRole
+    UpdateUserRole,
     )
 from schemas.login_schemas import UserGetModel
 
@@ -24,7 +24,7 @@ async def get_user_projects(
                             ):
     return await service.get_curr_user_projects(user.public_id)
 
-@router.post("/add")
+@router.post("/add", status_code=201)
 async def add_project(
                         service: ProjectServiceDep,
                         project_data:ProjectPostModel,
@@ -48,7 +48,7 @@ async def update_project_by_id(
 async def change_status(
                         service: ProjectServiceDep,
                         project_public_id: uuid.UUID,
-                        project_new_status: ProjectStatus,
+                        project_new_status: Annotated[ProjectStatus, Body(embed=True)],
                         user: UserGetModel = Depends(get_current_user)
                         ):
     return await service.change_project_status(
@@ -56,7 +56,7 @@ async def change_status(
                                                 project_public_id,
                                                 project_new_status
                                                 )
-@router.delete("/delete/{project_public_id}")
+@router.delete("/delete/{project_public_id}", response_model=ProjectGetModel)
 async def delete_project_by_id(
                                 service: ProjectServiceDep,
                                 project_public_id: uuid.UUID,
@@ -64,11 +64,11 @@ async def delete_project_by_id(
                                 ):
     return await service.soft_delete_project(project_public_id,user.public_id)
 
-@router.delete("/hard-delete/{project_public_id}")
+@router.delete("/hard-delete/{project_public_id}", status_code=204)
 async def hard_delete_project(
                                 service: ProjectServiceDep,
                                 project_public_id: uuid.UUID,
-                                project_name:str,
+                                project_name: Annotated[str, Body(embed=True)],
                                 user: UserGetModel = Depends(get_current_user)
                             ):
     return await service.verify_and_delete_project(
@@ -77,7 +77,7 @@ async def hard_delete_project(
         project_name
     )
 
-@router.post("/add-user/{project_public_id}")
+@router.post("/add-user/{project_public_id}", status_code=201)
 async def add_user_to_project(
                                 service: ProjectServiceDep,
                                 project_public_id: uuid.UUID,
@@ -101,7 +101,7 @@ async def get_project_members(
         project_public_id
     )
 
-@router.delete("/delete-member/{project_public_id}/{target_user_public_id}")
+@router.delete("/delete-member/{project_public_id}/{target_user_public_id}", status_code=204)
 async def delete_project_member(
                                 service: ProjectServiceDep,
                                 project_public_id: uuid.UUID,
@@ -114,7 +114,7 @@ async def delete_project_member(
         project_public_id
     )
 
-@router.patch("/change-role/{project_public_id}")
+@router.patch("/change-role/{project_public_id}", status_code=204)
 async def change_member_role(   
                                 service: ProjectServiceDep,
                                 project_public_id: uuid.UUID,
@@ -127,7 +127,7 @@ async def change_member_role(
         project_public_id
     )
 
-@router.post("/leave/{project_public_id}")
+@router.post("/leave/{project_public_id}", status_code=204)
 async def user_leave_from_project(
                                 service: ProjectServiceDep,
                                 project_public_id: uuid.UUID,
@@ -138,7 +138,7 @@ async def user_leave_from_project(
         project_public_id
     )
 
-@router.patch("/reassign-owner/{project_public_id}/{target_user_public_id}")
+@router.patch("/reassign-owner/{project_public_id}/{target_user_public_id}", status_code=204)
 async def reassign_owner(
                         service: ProjectServiceDep,
                         project_public_id: uuid.UUID,

@@ -5,7 +5,7 @@ import asyncio
 
 @pytest.mark.asyncio
 async def test_registration(test_client):
-    user_data = {"email":"test1@gmail.com", "password":"password123"}
+    user_data = {"email":"test1@gmail.com", "password":"Password123!"}
     succesfull_response = await test_client.post(
                                     "/api/v1/auth/register",
                                     json = user_data
@@ -23,7 +23,7 @@ async def test_otp_verification(test_client,fake_redis):
         "/api/v1/auth/verify-otp",
         json=code_payload
     )
-    assert correct_otp_input.status_code == 200
+    assert correct_otp_input.status_code == 201
 
 @pytest.mark.asyncio
 async def test_duplicate_email(test_client, test_user):
@@ -40,13 +40,13 @@ async def test_auth_and_refresh(test_client, test_user):
         "/api/v1/auth/",
         data = user_data
     )
-    assert succesfull_login_response.status_code == 200
+    assert succesfull_login_response.status_code == 204
     token_cookie = {"refresh_token": succesfull_login_response.cookies.get("refresh_token")}
     refresh_rotation_request = await test_client.post(
         "/api/v1/auth/refresh",
         cookies=token_cookie
     )
-    assert refresh_rotation_request.status_code == 200
+    assert refresh_rotation_request.status_code == 204
 
 @pytest.mark.asyncio
 async def test_failed_login(test_client, test_user):
@@ -85,12 +85,12 @@ async def test_get_current_user(test_client, auth_cookies):
 
 @pytest.mark.asyncio
 async def test_logout(test_client):
-    user_login_data = {"username":"test1@gmail.com", "password":"password123"}
+    user_login_data = {"username":"test1@gmail.com", "password":"Password123!"}
     login_request = await test_client.post(
         "/api/v1/auth/",
         data=user_login_data
     )
-    assert login_request.status_code == 200
+    assert login_request.status_code == 204
     auth_cookies = {
         "access_token": login_request.cookies.get("access_token"),
         "refresh_token": login_request.cookies.get("refresh_token")
@@ -99,7 +99,7 @@ async def test_logout(test_client):
         "/api/v1/auth/logout",
         cookies=auth_cookies
     )
-    assert logout_request.status_code == 200
+    assert logout_request.status_code == 204
     test_access_blacklist = await test_client.get(
         "/api/v1/auth/me",
         cookies=auth_cookies
@@ -125,24 +125,24 @@ async def test_rate_limit(test_client):
 
 @pytest.mark.asyncio
 async def test_token_retry_and_reuse(test_client):
-    user_login_data = {"username":"test1@gmail.com", "password":"password123"}
+    user_login_data = {"username":"test1@gmail.com", "password":"Password123!"}
     login_request = await test_client.post(
         "/api/v1/auth/",
         data=user_login_data
     )
-    assert login_request.status_code == 200
+    assert login_request.status_code == 204
     refresh_cookies = {"refresh_token": login_request.cookies.get("refresh_token")}
 
     refresh_request = await test_client.post(
             "/api/v1/auth/refresh",
             cookies=refresh_cookies
         )
-    assert refresh_request.status_code == 200
+    assert refresh_request.status_code == 204
     retry_request = await test_client.post(
             "/api/v1/auth/refresh",
             cookies=refresh_cookies
         )
-    assert retry_request.status_code == 200
+    assert retry_request.status_code == 204
 
     new_refresh_cookies =  {"refresh_token": retry_request.cookies.get("refresh_token")}
     await asyncio.sleep(5)

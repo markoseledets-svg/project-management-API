@@ -6,7 +6,7 @@ import json
 
 from core.exceptions import ToManyRequestsError, AuthFailedError
 from core.security import hash_data
-from schemas.login_schemas import UserPostModel
+from schemas.login_schemas import UserRegisterModel
 
 class RedisServices:
     def __init__ (self, redis_client:redis.Redis):
@@ -33,8 +33,8 @@ class RedisServices:
             raise ToManyRequestsError()
     
     
-    async def add_user_otp(self, user_data:UserPostModel) -> int:
-        hased_password = hash_data(user_data.password)
+    async def add_user_otp(self, user_data:UserRegisterModel) -> int:
+        hased_password = hash_data(user_data.password.get_secret_value())
         otp = randint(100000, 999999)
         key = f"otp:users:{user_data.email}"
         json_data = json.dumps({

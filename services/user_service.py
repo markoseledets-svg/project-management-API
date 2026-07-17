@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from services.redis_services import RedisServices
 from repository.user_repo import UserRepository,RefreshRepository
-from schemas.login_schemas import UserPostModel, UserWithOtp
+from schemas.login_schemas import UserPostModel, UserWithOtp, UserRegisterModel
 from database.db_model import UserModel, RefreshTokenModel
 from core.security import ( 
     verify_hashes, 
@@ -40,7 +40,7 @@ class AuthServices:
 
     async def start_user_registration(
                                         self,
-                                        user_data: UserPostModel,
+                                        user_data: UserRegisterModel,
                                     ) -> int:
         user_exists = await self.user_repo.check_if_user_exists(user_data.email)
         if user_exists:
@@ -57,7 +57,7 @@ class AuthServices:
         new_user = UserModel(
             public_id = public_user_id,
             email = email,
-            password = user_data.password,
+            password = user_data.password.get_secret_value(),
         )
         self.user_repo.add(new_user)
         try:    
@@ -71,7 +71,7 @@ class AuthServices:
         user = await self.user_repo.get_user_by_email(data.email)
         if not user:
             raise AuthFailedError()
-        if not verify_hashes(data.password, user.password):
+        if not verify_hashes(data.password.get_secret_value(), user.password):
             logger.warning(f"Unsuccesfull attempt to login to email {data.email}!")
             raise AuthFailedError()
         return user

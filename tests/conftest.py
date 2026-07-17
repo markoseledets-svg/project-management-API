@@ -52,7 +52,7 @@ async def test_client(fake_redis):
 
 @pytest.fixture(scope="session")
 async def test_user(test_client, fake_redis):
-    user_credentials = {"email":"test@gmail.com", "password":"password123"}
+    user_credentials = {"email":"test@gmail.com", "password":"Password123!"}
     await test_client.post("/api/v1/auth/register", json=user_credentials)
     redis_data_str = await fake_redis.get("otp:users:test@gmail.com")
     redis_data = json.loads(redis_data_str)
@@ -104,7 +104,7 @@ async def test_task(test_client, test_project_id, auth_cookies):
     
 @pytest.fixture(scope="session")
 async def test_project_user(test_client, fake_redis):
-    user_data = {"email":"test_project@gmail.com", "password":"password123"}
+    user_data = {"email":"test_project@gmail.com", "password":"Password123!"}
     await test_client.post(
         f"/api/v1/auth/register",
         json=user_data

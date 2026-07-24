@@ -8,7 +8,6 @@ from schemas.project_schemas import (
     ProjectWithRoleGetModel, 
     ProjectPostModel, 
     ProjectUpdateModel, 
-    PostNewRelation,
     GetUserDataWithRole,
     UpdateUserRole,
     )
@@ -119,38 +118,18 @@ class ProjectService:
             await self.session.refresh(project)
             return project
 
-    async def add_user_to_project(
+    def add_user_to_project(
                                self, 
                                project_public_id:uuid.UUID,
-                               new_relation_data:PostNewRelation, 
-                               curr_user_id:uuid.UUID
+                               user_public_id:uuid.UUID,
+                               user_role:UserRole
                                ) -> None:
-        
-        user_role = await self.permission_service.verify_user_role(
-            curr_user_id,
-            project_public_id,
-            allowed_roles=(UserRole.ADMIN, UserRole.OWNER,)
-        )
-        new_relation_user_id = await self.user_repo.get_user_id_by_email(new_relation_data.email)
-        if not new_relation_user_id:
-            raise NotFoundError()
-        relation_exists = await self.user_project_repo.get_user_role_request(
-            new_relation_user_id,
-            project_public_id
-        )
-        if relation_exists:
-            raise ConflictError(detail="User with this email already in project members!")
-        self.permission_service.verify_user_hierarchy(
-            user_role,
-            new_user_role=new_relation_data.user_role
-        )
         new_relation = UserProjectRelation(
-                                            user_public_id=new_relation_user_id,
+                                            user_public_id=user_public_id,
                                             project_public_id=project_public_id,
-                                            user_role=new_relation_data.user_role
+                                            user_role=user_role
         )
-        self.session.add(new_relation)
-        await self.session.commit()  
+        self.session.add(new_relation) 
 
     async def get_members_list(
                                 self,

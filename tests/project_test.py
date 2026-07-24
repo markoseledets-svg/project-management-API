@@ -33,27 +33,6 @@ async def test_project_update(test_client, auth_cookies, test_project_id):
     project_data = patch_response.json()
     assert project_data.get("project_name") == "project_updated"
 
-
-@pytest.mark.asyncio
-async def test_add_owner_to_project(test_client, auth_cookies, test_project_id, test_project_user):
-    new_relation_data = {"email":test_project_user["email"], "user_role":"owner"}
-    post_relation_request = await test_client.post(
-        f"/api/v1/projects/add-user/{test_project_id}",
-        json=new_relation_data,
-        cookies=auth_cookies
-    )
-    assert post_relation_request.status_code == 403
-
-@pytest.mark.asyncio
-async def test_add_user_to_project(test_client, auth_cookies, test_project_id, test_project_user):
-    new_relation_data = {"email":test_project_user["email"], "user_role":"admin"}
-    post_relation_request = await test_client.post(
-        f"/api/v1/projects/add-user/{test_project_id}",
-        json=new_relation_data,
-        cookies=auth_cookies
-    )
-    assert post_relation_request.status_code == 201
-
 @pytest.mark.asyncio
 async def test_get_project_members(test_client, auth_cookies, test_project_id):
     get_response = await test_client.get(
@@ -176,7 +155,7 @@ async def test_hard_deletion(test_client, auth_cookies):
     assert hard_delete_response.status_code == 204
 
 @pytest.mark.asyncio
-async def test_user_self_delete(test_client, auth_cookies, test_project_user, project_user_id):
+async def test_user_self_delete(test_client, auth_cookies, test_project_user, project_user_id, project_user_cookies):
     new_project_data = {"project_name":"test_member_delete"}
     add_response = await test_client.post(
         "/api/v1/projects/add",
@@ -192,13 +171,28 @@ async def test_user_self_delete(test_client, auth_cookies, test_project_user, pr
     project_list = get_project_id.json()
     project = next(i for i in project_list if i["project_name"] == "test_member_delete")
 
-    add_user_response = await test_client.post(
-        f"api/v1/projects/add-user/{project['project_public_id']}",
+    invite_user_response = await test_client.post(
+        f"/api/v1/projects/send-invitation/{project['project_public_id']}",
         json={"email":test_project_user["email"], "user_role":"admin"},
         cookies = auth_cookies
     )
-    assert add_user_response.status_code == 201
+    assert invite_user_response.status_code == 201
+    invitation_id_response = await test_client.get(
+        f"/api/v1/projects/invitations-dashboard/{project['project_public_id']}",
+        cookies = auth_cookies
+        )
+    assert invitation_id_response.status_code == 200
 
+    invitation_id = [i['invitation_public_id'] for i in invitation_id_response.json() 
+                    if i['invited_user_email'] == test_project_user['email']
+                    and i['status'] == 'pending']
+    
+    accept_response = await test_client.patch(
+        f"/api/v1/projects/accept-invitation/{invitation_id[0]}",
+        cookies = project_user_cookies
+        )
+    assert accept_response.status_code == 204  
+    
     delete_user_response = await test_client.delete(
        f"/api/v1/projects/delete-member/{project['project_public_id']}/{project_user_id}",
         cookies = auth_cookies

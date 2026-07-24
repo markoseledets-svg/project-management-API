@@ -246,6 +246,36 @@
             .tasks-grid { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: repeat(3, 1fr); }
         }
+
+        /* Notifications & Invitations */
+        .notif-btn { position: relative; }
+        .notif-badge {
+            position: absolute; top: -4px; right: -4px;
+            background: var(--danger); color: #fff;
+            font-size: 0.65rem; font-weight: 800;
+            min-width: 18px; height: 18px; border-radius: 9px;
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 0 4px; border: 2px solid var(--surface);
+            box-shadow: 0 2px 6px rgba(239,68,68,0.4);
+        }
+        .notif-card {
+            background: var(--surface-2); border: 1px solid var(--border);
+            border-radius: var(--radius-sm); padding: 0.875rem 1rem;
+            margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;
+            transition: border-color 0.2s;
+        }
+        .notif-card:hover { border-color: var(--border-hover); }
+        .notif-header { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+        .notif-title { font-weight: 700; font-size: 0.9rem; color: var(--text); }
+        .notif-meta { font-size: 0.75rem; color: var(--text-soft); }
+        .notif-actions { display: flex; gap: 0.5rem; margin-top: 0.25rem; justify-content: flex-end; }
+
+        .inv-status { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; padding: 0.15rem 0.5rem; border-radius: 6px; }
+        .inv-status-pending { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(245,158,11,0.2); }
+        .inv-status-accepted { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
+        .inv-status-rejected { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
+        .inv-status-revoked { background: rgba(100,116,139,0.2); color: var(--text-soft); }
+        .inv-status-expired { background: rgba(100,116,139,0.15); color: var(--text-muted); }
     </style>
 </head>
 <body>
@@ -283,7 +313,13 @@
             <h1 id="topbar-title">Dashboard</h1>
             <span class="topbar-status" id="topbar-status" style="display:none"></span>
         </div>
-        <div class="topbar-actions" id="topbar-actions"></div>
+        <div class="topbar-actions">
+            <button class="btn btn-ghost btn-sm notif-btn" onclick="openNotificationsModal()" title="Notifications">
+                <span style="font-size:1rem">🔔</span>
+                <span id="notif-badge" class="notif-badge" style="display:none">0</span>
+            </button>
+            <div id="topbar-actions" style="display:inline-flex;gap:0.5rem;"></div>
+        </div>
     </div>
     <div class="content" id="content"></div>
 </div>
@@ -332,7 +368,7 @@
 <!-- Add User to Project -->
 <div class="overlay" id="add-user-modal">
     <div class="modal">
-        <div class="modal-title">👥 Invite Collaborator</div>
+        <div class="modal-title">✉️ Invite Collaborator</div>
         <div class="form-group"><label>Email address</label><input class="form-control" id="invite-email" type="email" placeholder="user@example.com" /></div>
         <div class="form-group"><label>Role</label>
             <select class="form-control" id="invite-role">
@@ -343,7 +379,7 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
-            <button class="btn btn-primary" onclick="submitAddUser()">Add User</button>
+            <button class="btn btn-primary" onclick="submitAddUser()">Send Invitation</button>
         </div>
     </div>
 </div>
@@ -404,6 +440,19 @@
         </div>
     </div>
 </div>
+<!-- Notifications Modal -->
+<div class="overlay" id="notifications-modal">
+    <div class="modal" style="max-width: 480px;">
+        <div class="modal-title" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>🔔 My Invitations</span>
+            <button class="btn btn-ghost btn-sm" onclick="closeModals()" style="padding:0.2rem 0.5rem;">✕</button>
+        </div>
+        <div id="notifications-list" style="max-height:360px;overflow-y:auto;padding-right:4px;"></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModals()">Close</button>
+        </div>
+    </div>
+</div>
 
 <div class="ctx-menu" id="ctx-menu"></div>
 <div class="toast-container" id="toast-container"></div>
@@ -416,8 +465,10 @@ let projects = [];
 let selectedProject = null;
 let tasks = [];
 let members = [];
+let userInvitations = [];
+let projectInvitations = [];
 let taskFilter = 'all';
-let activeTab = 'tasks'; // 'tasks' | 'members'
+let activeTab = 'tasks'; // 'tasks' | 'members' | 'invitations'
 
 // ══ BOOT ══
 async function boot() {
@@ -425,6 +476,7 @@ async function boot() {
         currentUser = await apiGet(`${API}/auth/me`);
         renderUser(currentUser);
         await loadProjects();
+        await loadUserInvitations();
         document.getElementById('loading-screen').style.display = 'none';
         setupMobileMenu();
     } catch { goLogin(); }
@@ -446,7 +498,13 @@ async function apiFetch(url, options = {}) {
     }
     if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `HTTP ${res.status}`);
+        let msg = err.detail;
+        if (Array.isArray(err.detail)) {
+            msg = err.detail.map(d => (d.msg ? `${d.loc ? d.loc.filter(l => l !== 'body').join('.') + ': ' : ''}${d.msg}` : JSON.stringify(d))).join(', ');
+        } else if (typeof err.detail === 'object' && err.detail !== null) {
+            msg = JSON.stringify(err.detail);
+        }
+        throw new Error(msg || `HTTP ${res.status}`);
     }
     const text = await res.text();
     return text ? JSON.parse(text) : null;
@@ -467,6 +525,78 @@ function renderUser(u) {
     document.getElementById('user-name').textContent = u.email.split('@')[0];
     document.getElementById('user-email-display').textContent = u.email;
     document.getElementById('user-avatar').textContent = u.email[0].toUpperCase();
+}
+
+// ══ NOTIFICATIONS / USER INVITATIONS ══
+async function loadUserInvitations() {
+    try {
+        userInvitations = await apiGet(`${API}/projects/invitations/`) || [];
+    } catch {
+        userInvitations = [];
+    }
+    updateNotificationBadge();
+}
+function updateNotificationBadge() {
+    const badge = document.getElementById('notif-badge');
+    if (!badge) return;
+    if (userInvitations.length > 0) {
+        badge.textContent = userInvitations.length;
+        badge.style.display = 'inline-flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+async function openNotificationsModal() {
+    await loadUserInvitations();
+    renderNotificationsList();
+    openModal('notifications-modal');
+}
+function renderNotificationsList() {
+    const container = document.getElementById('notifications-list');
+    if (!container) return;
+    if (!userInvitations.length) {
+        container.innerHTML = `<div class="empty-state" style="padding:2rem 1rem;"><div class="empty-icon">🎉</div><h3>No pending invitations</h3><p>You're all caught up!</p></div>`;
+        return;
+    }
+    container.innerHTML = userInvitations.map(inv => {
+        const sentDate = inv.sent_at ? new Date(inv.sent_at).toLocaleDateString() : '';
+        return `<div class="notif-card">
+            <div class="notif-header">
+                <div class="notif-title">📁 ${esc(inv.project_name)}</div>
+                <span class="member-role-badge role-${inv.user_role}">${inv.user_role}</span>
+            </div>
+            <div class="notif-meta">
+                Invited by: <strong>${esc(inv.sender_email)}</strong> ${sentDate ? `· ${sentDate}` : ''}
+            </div>
+            <div class="notif-actions">
+                <button class="btn btn-ghost btn-sm" onclick="rejectInvitation('${inv.invitation_public_id}')">Decline</button>
+                <button class="btn btn-primary btn-sm" onclick="acceptInvitation('${inv.invitation_public_id}')">✓ Accept</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+async function acceptInvitation(invId) {
+    try {
+        await apiPatch(`${API}/projects/accept-invitation/${invId}`);
+        toast('🎉 Invitation accepted! Welcome to the project.', 'success');
+        await loadUserInvitations();
+        renderNotificationsList();
+        await loadProjects();
+        if (userInvitations.length === 0) closeModals();
+    } catch(e) {
+        toast(e.message, 'error');
+    }
+}
+async function rejectInvitation(invId) {
+    try {
+        await apiPatch(`${API}/projects/reject-invitation/${invId}`);
+        toast('Invitation declined', 'success');
+        await loadUserInvitations();
+        renderNotificationsList();
+        if (userInvitations.length === 0) closeModals();
+    } catch(e) {
+        toast(e.message, 'error');
+    }
 }
 
 // ══ PROJECTS ══
@@ -501,8 +631,12 @@ async function selectProject(pid) {
 }
 async function onProjectSelected() {
     await loadTasks();
-    if (canManageMembers()) { try { members = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`); } catch { members = []; } }
-    else { members = []; }
+    if (canManageMembers()) {
+        try { members = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`); } catch { members = []; }
+        try { projectInvitations = await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`) || []; } catch { projectInvitations = []; }
+    } else {
+        members = []; projectInvitations = [];
+    }
     renderProjectView();
 }
 function renderWelcome() {
@@ -534,7 +668,7 @@ async function submitEditProject() {
 function openChangeStatus() { if (!selectedProject) return; document.getElementById('project-new-status').value = selectedProject.status; closeCtx(); openModal('project-status-modal'); }
 async function submitChangeProjectStatus() {
     const s = document.getElementById('project-new-status').value;
-    try { await apiPatch(`${API}/projects/change-status/${selectedProject.project_public_id}?project_new_status=${s}`); closeModals(); await loadProjects(); toast('🔄 Status updated!', 'success'); } catch(e) { toast(e.message, 'error'); }
+    try { await apiPatch(`${API}/projects/change-status/${selectedProject.project_public_id}`, { project_new_status: s }); closeModals(); await loadProjects(); toast('🔄 Status updated!', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
 async function archiveProject() {
     if (!selectedProject) return; closeCtx();
@@ -569,7 +703,7 @@ function showProjectCtx(e, pid) {
     if (isE) items += `<button class="ctx-item" onclick="openEditProject()">✏️ Rename</button>`;
     if (isA) {
         items += `<button class="ctx-item" onclick="openChangeStatus()">🔄 Change Status</button>`;
-        items += `<button class="ctx-item" onclick="openAddUser()">👥 Add User</button>`;
+        items += `<button class="ctx-item" onclick="openAddUser()">✉️ Invite Collaborator</button>`;
     }
     if (isA) { items += `<div class="ctx-sep"></div>`; items += `<button class="ctx-item danger" onclick="archiveProject()">🗑 Archive</button>`; }
     if (isO) { items += `<button class="ctx-item danger" onclick="hardDeleteProject()">💥 Hard Delete</button>`; }
@@ -584,7 +718,7 @@ function showProjectCtx(e, pid) {
 }
 function closeCtx() { document.getElementById('ctx-menu').classList.remove('open'); }
 
-// ══ MEMBERS ══
+// ══ MEMBERS & INVITATIONS ══
 function openAddUser() { 
     if (!selectedProject) return; 
     document.getElementById('invite-email').value = ''; 
@@ -598,7 +732,15 @@ async function submitAddUser() {
     const email = document.getElementById('invite-email').value.trim();
     const role = document.getElementById('invite-role').value;
     if (!email) return toast('Email is required', 'error');
-    try { await apiPost(`${API}/projects/add-user/${selectedProject.project_public_id}`, { email, user_role: role }); closeModals(); members = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`); renderProjectView(); toast('👥 User added!', 'success'); } catch(e) { toast(e.message, 'error'); }
+    try {
+        await apiPost(`${API}/projects/send-invitation/${selectedProject.project_public_id}`, { email, user_role: role });
+        closeModals();
+        if (canManageMembers()) {
+            try { projectInvitations = await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`) || []; } catch {}
+            renderProjectView();
+        }
+        toast('✉️ Invitation sent successfully!', 'success');
+    } catch(e) { toast(e.message, 'error'); }
 }
 async function removeMember(uid) {
     if (!confirm('Remove this member from the project?')) return;
@@ -640,7 +782,7 @@ function renderProjectView() {
     statusEl.style.display = 'inline'; statusEl.textContent = p.status;
     statusEl.className = `topbar-status status-${p.status}`;
     const acts = [];
-    if (canManageMembers()) acts.push(`<button class="btn btn-ghost btn-sm" onclick="openAddUser()">👥 Invite</button>`);
+    if (canManageMembers()) acts.push(`<button class="btn btn-ghost btn-sm" onclick="openAddUser()">✉️ Invite</button>`);
     if (isEditor()) acts.push(`<button class="btn btn-primary btn-sm" onclick="openModal('task-create-modal')">＋ New Task</button>`);
     document.getElementById('topbar-actions').innerHTML = acts.join('');
 
@@ -658,6 +800,7 @@ function renderProjectView() {
         html += `<div class="view-tabs">
             <button class="view-tab ${activeTab==='tasks'?'active':''}" onclick="switchViewTab('tasks')">📋 Tasks</button>
             <button class="view-tab ${activeTab==='members'?'active':''}" onclick="switchViewTab('members')">👥 Members (${members.length})</button>
+            <button class="view-tab ${activeTab==='invitations'?'active':''}" onclick="switchViewTab('invitations')">✉️ Invitations (${projectInvitations.length})</button>
         </div>`;
     }
 
@@ -665,9 +808,16 @@ function renderProjectView() {
     content.innerHTML = html;
 
     if (activeTab === 'tasks') renderTasksTab();
-    else renderMembersTab();
+    else if (activeTab === 'members') renderMembersTab();
+    else if (activeTab === 'invitations') renderInvitationsTab();
 }
-function switchViewTab(tab) { activeTab = tab; renderProjectView(); }
+async function switchViewTab(tab) {
+    activeTab = tab;
+    if (tab === 'invitations' && canManageMembers()) {
+        try { projectInvitations = await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`) || []; } catch { projectInvitations = []; }
+    }
+    renderProjectView();
+}
 
 function renderTasksTab() {
     const container = document.getElementById('tab-content');
@@ -720,7 +870,6 @@ function renderMembersTab() {
         const memberRole = m.user_role;
         const roleClass = `role-${memberRole}`;
         const actions = [];
-        // Owner can change any non-owner role, admin can change editor/viewer
         if (!isSelf && memberRole !== 'owner') {
             if (isOwner() || (isAdmin() && (memberRole === 'editor' || memberRole === 'viewer'))) {
                 actions.push(`<button class="icon-btn edit" onclick="openChangeRole('${m.public_id}','${esc(m.email)}','${memberRole}')" title="Change role">🔧</button>`);
@@ -741,6 +890,53 @@ function renderMembersTab() {
         <thead><tr><th>Email</th><th>Role</th><th style="text-align:right">Actions</th></tr></thead>
         <tbody>${rows}</tbody>
     </table></div>`;
+}
+
+function renderInvitationsTab() {
+    const container = document.getElementById('tab-content');
+    if (!container) return;
+    
+    let rows = projectInvitations.map(inv => {
+        const sentDate = inv.sent_at ? new Date(inv.sent_at).toLocaleDateString() : '—';
+        const statusClass = `inv-status-${inv.status.toLowerCase()}`;
+        const actions = [];
+        if (inv.status === 'pending') {
+            actions.push(`<button class="icon-btn del" onclick="revokeInvitation('${inv.invitation_public_id}')" title="Revoke Invitation">✕</button>`);
+        }
+        return `<tr>
+            <td class="member-email">${esc(inv.invited_user_email)}</td>
+            <td><span class="member-role-badge role-${inv.user_role}">${inv.user_role}</span></td>
+            <td style="font-size:0.8rem;color:var(--text-soft);">${esc(inv.sender_email)}</td>
+            <td><span class="inv-status ${statusClass}">${inv.status}</span></td>
+            <td style="font-size:0.75rem;color:var(--text-muted);">${sentDate}</td>
+            <td><div class="member-actions">${actions.join('')}</div></td>
+        </tr>`;
+    }).join('');
+
+    if (!projectInvitations.length) {
+        rows = `<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--text-muted);">No invitations sent for this project yet.<br><button class="btn btn-primary btn-sm" onclick="openAddUser()" style="margin-top:0.75rem;">✉️ Send First Invitation</button></td></tr>`;
+    }
+
+    container.innerHTML = `<div class="content-header">
+        <div class="content-title">Project Invitations Log</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddUser()">＋ Invite Member</button>
+    </div>
+    <div class="members-wrapper"><table class="members-table">
+        <thead><tr><th>Invited User</th><th>Role</th><th>Sender</th><th>Status</th><th>Sent Date</th><th style="text-align:right">Actions</th></tr></thead>
+        <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+async function revokeInvitation(invId) {
+    if (!confirm('Revoke this invitation? The invited user will no longer be able to accept it.')) return;
+    try {
+        await apiPatch(`${API}/projects/revoke-invitation/${selectedProject.project_public_id}/${invId}`);
+        toast('Invitation revoked', 'success');
+        projectInvitations = await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`) || [];
+        renderProjectView();
+    } catch(e) {
+        toast(e.message, 'error');
+    }
 }
 
 // ── Task CRUD ──
@@ -786,11 +982,13 @@ function closeModals() { document.querySelectorAll('.overlay').forEach(o => o.cl
 document.querySelectorAll('.overlay').forEach(o => { o.addEventListener('click', e => { if (e.target === o) closeModals(); }); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModals(); closeCtx(); } });
 function toast(msg, type = 'success') {
-    const el = document.createElement('div');
-    el.className = `toast ${type}`;
-    el.textContent = (type === 'success' ? '✓ ' : '✕ ') + msg;
-    document.getElementById('toast-container').appendChild(el);
-    setTimeout(() => el.remove(), 3500);
+    const el = document.getElementById('toast-container');
+    if (!el) return;
+    const item = document.createElement('div');
+    item.className = `toast ${type}`;
+    item.textContent = (type === 'success' ? '✓ ' : '✕ ') + msg;
+    el.appendChild(item);
+    setTimeout(() => item.remove(), 3500);
 }
 async function doLogout() {
     try { await apiPost(`${API}/auth/logout`); } catch {}

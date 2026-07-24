@@ -18,6 +18,13 @@ class ProjectStatus(str, Enum):
     ARCHIVED = "archived"
     SUSPENDED = "suspended"
 
+class InvitationStatus(str, Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    REVOKED = "revoked"
+    EXPIRED = "expired"
+
 class Base(DeclarativeBase):
     pass
 
@@ -35,6 +42,16 @@ class UserModel(Base):
     
     tokens: Mapped[List["RefreshTokenModel"]] = relationship(back_populates="user", passive_deletes=True)
     project_relation: Mapped[List["UserProjectRelation"]] = relationship(back_populates="user_relation", passive_deletes=True)
+    invitation_sender_relation: Mapped[List["InvitationModel"]] = relationship(
+        back_populates="sender_relation", 
+        passive_deletes=True, 
+        foreign_keys='[InvitationModel.sender_public_id]'
+        )
+    invitation_relation: Mapped[List["InvitationModel"]] = relationship(
+        back_populates="invited_user_relation", 
+        passive_deletes=True, 
+        foreign_keys='[InvitationModel.target_user_public_id]'
+        )
 
 class RefreshTokenModel(Base):
     __tablename__ = "refresh_tokens"
@@ -107,6 +124,7 @@ class ProjectModel(Base):
                                                 )
     user_relation: Mapped[List["UserProjectRelation"]] = relationship(back_populates="project_relation", passive_deletes=True)
     task_relation: Mapped[List["TaskModel"]] = relationship(back_populates="project_relation", passive_deletes=True)
+    invitation_relation: Mapped[List["InvitationModel"]] = relationship(back_populates="project_relation", passive_deletes=True)
 
 class UserProjectRelation(Base):
     __tablename__ = "user_project_relation"
@@ -129,4 +147,50 @@ class UserProjectRelation(Base):
 
     user_relation: Mapped["UserModel"] = relationship(back_populates="project_relation")
     project_relation: Mapped["ProjectModel"] = relationship(back_populates="user_relation")
+
+class InvitationModel(Base):
+    __tablename__ = "invitations"
+    __table_args__ = (
+        Index(
+            "ix_unique_project_invite",
+            "project_public_id",
+            "target_user_public_id",
+            unique=True,
+            postgresql_where=text("status = 'PENDING'")
+        ),
+    )
+    invitation_public_id: Mapped[uuid.UUID] = mapped_column(
+                                                                primary_key=True,
+                                                                nullable=False,
+                                                                unique=True,
+                                                                default=uuid6.uuid7
+                                                            )
+    project_public_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.project_public_id", ondelete="CASCADE"))
+    sender_public_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.public_id", ondelete="CASCADE"))
+    target_user_public_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.public_id", ondelete="CASCADE"))
+    sent_at: Mapped[datetime] = mapped_column(
+                                                DateTime(timezone=True),
+                                                default=lambda: datetime.now(timezone.utc)
+                                                )
+    expires_at: Mapped[datetime] = mapped_column(
+                                                DateTime(timezone=True),
+                                                default=lambda: datetime.now(timezone.utc) + timedelta(days=7)
+                                                )
+    resolved_at: Mapped[datetime] = mapped_column(
+                                                    DateTime(timezone=True),
+                                                    nullable=True,
+                                                    default=None
+                                                    )
+    status: Mapped[InvitationStatus] = mapped_column(nullable=False, default=InvitationStatus.PENDING)
+    user_role: Mapped[UserRole] = mapped_column(nullable=False)
+
+    sender_relation: Mapped["UserModel"] = relationship(
+        back_populates="invitation_sender_relation",
+        foreign_keys=[sender_public_id]
+    )
+    invited_user_relation: Mapped["UserModel"] = relationship(
+        back_populates="invitation_relation",
+        foreign_keys=[target_user_public_id]
+    )
+    project_relation: Mapped["ProjectModel"] = relationship(back_populates="invitation_relation")
     

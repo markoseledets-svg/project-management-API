@@ -136,6 +136,16 @@ async def project_user_id(test_client, test_project_user):
     user = get_user_response.json()
     get_user_response.cookies.clear()
     return user['public_id']
+@pytest.fixture(scope="session")
+async def project_user_cookies(test_client, test_project_user):
+    response = await test_client.post(
+        "/api/v1/auth/", 
+    data={"username": test_project_user["email"], 
+    "password": test_project_user["password"]})
+    return {
+        "access_token": response.cookies.get("access_token"),
+        "refresh_token": response.cookies.get("refresh_token")
+        }
 
 @pytest.fixture(scope="session")
 async def test_task_id(test_client, test_project_id, test_task, auth_cookies):

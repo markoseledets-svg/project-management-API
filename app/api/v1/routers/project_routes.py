@@ -76,20 +76,7 @@ async def hard_delete_project(
         project_public_id,
         project_name
     )
-
-@router.post("/add-user/{project_public_id}", status_code=201)
-async def add_user_to_project(
-                                service: ProjectServiceDep,
-                                project_public_id: uuid.UUID,
-                                new_relation_data: PostNewRelation, 
-                                user: UserGetModel = Depends(get_current_user)
-                            ):
-    return await service.add_user_to_project(
-                                            project_public_id,
-                                            new_relation_data,
-                                            user.public_id
-                                            )
-                                            
+                                           
 @router.get("/members/{project_public_id}", response_model=List[GetUserDataWithRole])
 async def get_project_members(
                                 service: ProjectServiceDep,

@@ -15,3 +15,4 @@ alembic==1.18.4
 bcrypt==3.2.2
 redis==7.4.0
 fakeredis==2.36.2
+polyfactory==3.3.0

@@ -29,6 +29,7 @@ A REST API for managing projects and tasks with JWT authentication and role-base
 | Auth | PyJWT + passlib (bcrypt) |
 | Cache / Limits | Redis (redis.asyncio) |
 | Validation | Pydantic v2 |
+| Testing | Pytest + Polyfactory + FakeRedis |
 | Runtime | Uvicorn |
 | Containerization | Docker + Docker Compose |
 
@@ -54,6 +55,12 @@ A REST API for managing projects and tasks with JWT authentication and role-base
 ├── repository/                 # data access layer
 ├── services/                   # business logic layer
 ├── schemas/                    # Pydantic models
+├── tests/
+│   ├── factories/              # Polyfactory model factories
+│   ├── auth_test.py
+│   ├── project_test.py
+│   ├── task_test.py
+│   └── invitation_test.py
 ├── utils/
 │   └── logger.py
 ├── alembic/
@@ -98,6 +105,20 @@ cp .env.example .env
 alembic upgrade head
 
 uvicorn app.main:app --reload
+```
+
+---
+
+## Testing
+
+Tests use **Pytest** and **Polyfactory** for fast, independent test data generation directly into an isolated test database with automatic transaction rollback.
+
+```bash
+# Run all 39 tests
+pytest
+
+# Run a specific test module
+pytest tests/auth_test.py
 ```
 
 ---
@@ -202,4 +223,5 @@ Swagger UI: `http://localhost:8000/docs` (only when `ENV=development`)
 - [x] Redis for Rate Limiting, OTP storage, and Token Blacklisting
 - [ ] Background scheduled tasks for expired data cleanup and expiration
 - [ ] Production deployment and infrastructure validation
-- [ ] Undependant tests with data factories
+- [x] Independent tests with Polyfactory data factories
+

@@ -1,10 +1,11 @@
-from redis import asyncio
 import pytest
 import json
 import asyncio
 
+from tests.factories.users import RAW_PASSWORD
+
 @pytest.mark.asyncio
-async def test_registration(test_client):
+async def test_registration_process(test_client, fake_redis):
     user_data = {"email":"test1@gmail.com", "password":"Password123!"}
     succesfull_response = await test_client.post(
                                     "/api/v1/auth/register",
@@ -12,8 +13,6 @@ async def test_registration(test_client):
                                     )
     assert succesfull_response.status_code == 200
 
-@pytest.mark.asyncio
-async def test_otp_verification(test_client,fake_redis):
     redis_data_str = await fake_redis.get("otp:users:test1@gmail.com")
     assert redis_data_str is not None
     redis_data = json.loads(redis_data_str)
@@ -27,21 +26,25 @@ async def test_otp_verification(test_client,fake_redis):
 
 @pytest.mark.asyncio
 async def test_duplicate_email(test_client, test_user):
-    duplicate_error_response = await test_client.post(
+    payload = {'email':test_user.email, 'password':RAW_PASSWORD}
+    duplicate_response = await test_client.post(
                                         "/api/v1/auth/register",
-                                        json = test_user
+                                        json = payload
                                     )
-    assert duplicate_error_response.status_code == 409
-
+    assert duplicate_response.status_code == 409
+    
 @pytest.mark.asyncio
-async def test_auth_and_refresh(test_client, test_user):
-    user_data = {"username": test_user["email"], "password": test_user["password"]}
+async def test_auth(test_client, test_user):
+    user_data = {"username": test_user.email, "password": RAW_PASSWORD}
     succesfull_login_response = await test_client.post(
         "/api/v1/auth/",
         data = user_data
     )
     assert succesfull_login_response.status_code == 204
-    token_cookie = {"refresh_token": succesfull_login_response.cookies.get("refresh_token")}
+
+@pytest.mark.asyncio
+async def test_refresh(test_client, test_refresh_token):
+    token_cookie = {"refresh_token": test_refresh_token}
     refresh_rotation_request = await test_client.post(
         "/api/v1/auth/refresh",
         cookies=token_cookie
@@ -50,7 +53,7 @@ async def test_auth_and_refresh(test_client, test_user):
 
 @pytest.mark.asyncio
 async def test_failed_login(test_client, test_user):
-    user_data = {"username": test_user["email"], "password": "random_password"}
+    user_data = {"username": test_user.email, "password": "random_password"}
     fail_response = await test_client.post(
         "/api/v1/auth/",
         data = user_data
@@ -84,17 +87,8 @@ async def test_get_current_user(test_client, auth_cookies):
     assert user_response.status_code == 200
 
 @pytest.mark.asyncio
-async def test_logout(test_client):
-    user_login_data = {"username":"test1@gmail.com", "password":"Password123!"}
-    login_request = await test_client.post(
-        "/api/v1/auth/",
-        data=user_login_data
-    )
-    assert login_request.status_code == 204
-    auth_cookies = {
-        "access_token": login_request.cookies.get("access_token"),
-        "refresh_token": login_request.cookies.get("refresh_token")
-        }
+async def test_logout_and_token_invalidation(test_client, auth_cookies):
+    
     logout_request = await test_client.post(
         "/api/v1/auth/logout",
         cookies=auth_cookies
@@ -124,23 +118,16 @@ async def test_rate_limit(test_client):
     assert statuses == [401, 401, 401, 401, 401, 429]
 
 @pytest.mark.asyncio
-async def test_token_retry_and_reuse(test_client):
-    user_login_data = {"username":"test1@gmail.com", "password":"Password123!"}
-    login_request = await test_client.post(
-        "/api/v1/auth/",
-        data=user_login_data
-    )
-    assert login_request.status_code == 204
-    refresh_cookies = {"refresh_token": login_request.cookies.get("refresh_token")}
-
+async def test_token_retry_and_reuse(test_client, test_refresh_token):
+    token_cookie = {"refresh_token": test_refresh_token}
     refresh_request = await test_client.post(
             "/api/v1/auth/refresh",
-            cookies=refresh_cookies
+            cookies=token_cookie
         )
     assert refresh_request.status_code == 204
     retry_request = await test_client.post(
             "/api/v1/auth/refresh",
-            cookies=refresh_cookies
+            cookies=token_cookie
         )
     assert retry_request.status_code == 204
 
@@ -148,7 +135,7 @@ async def test_token_retry_and_reuse(test_client):
     await asyncio.sleep(5)
     reuse_request = await test_client.post(
             "/api/v1/auth/refresh",
-            cookies=refresh_cookies
+            cookies=token_cookie
         )
     assert reuse_request.status_code == 401
     family_banned_request = await test_client.post(

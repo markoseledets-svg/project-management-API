@@ -3,3 +3,4 @@ from database.db_model import TaskModel
 
 class TaskFactory(BaseFactory):
     __model__ = TaskModel
+    assignee_id = None

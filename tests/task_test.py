@@ -40,9 +40,9 @@ async def test_task_update(test_client, test_project, auth_cookies, test_task):
     assert get_tasks_response.status_code == 200
 
 @pytest.mark.asyncio
-async def test_task_update_status(test_client, test_project, auth_cookies, test_task):
+async def test_task_update_status(test_client, test_project, auth_cookies, test_task_assignee):
     get_tasks_response = await test_client.patch(
-        f"/api/v1/projects/{test_project.project_public_id}/tasks/{test_task.task_public_id}/change-status",
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/{test_task_assignee.task_public_id}/status/review",
         cookies=auth_cookies
     )
     assert get_tasks_response.status_code == 200
@@ -63,3 +63,87 @@ async def test_task_not_found(test_client, test_project, auth_cookies):
         cookies=auth_cookies
     )
     assert get_tasks_response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_review_status(test_client, test_task_assignee, auth_cookies):
+    review_response = await test_client.patch(
+        f"/api/v1/projects/{test_task_assignee.project_public_id}/tasks/{test_task_assignee.task_public_id}/status/review",
+        cookies=auth_cookies
+    )
+    assert review_response.status_code == 200
+
+@pytest.mark.asyncio
+async def test_cancel_review(test_client, test_task_review, auth_cookies):
+    cancel_response = await test_client.patch(
+        f"/api/v1/projects/{test_task_review.project_public_id}/tasks/{test_task_review.task_public_id}/status/cancel-review",
+        cookies=auth_cookies
+    )
+    assert cancel_response.status_code == 200
+
+@pytest.mark.asyncio
+async def test_complete_task(test_client, test_task_review, auth_cookies):
+    complete_response = await test_client.patch(
+        f"/api/v1/projects/{test_task_review.project_public_id}/tasks/{test_task_review.task_public_id}/status/completed",
+        cookies=auth_cookies
+    )
+    assert complete_response.status_code == 200
+
+@pytest.mark.asyncio
+async def test_cancel_completed(test_client, test_task_completed, auth_cookies):
+    complete_response = await test_client.patch(
+        f"/api/v1/projects/{test_task_completed.project_public_id}/tasks/{test_task_completed.task_public_id}/status/cancel-completed",
+        cookies=auth_cookies
+    )
+    assert complete_response.status_code == 200
+
+@pytest.mark.asyncio
+async def test_assign_user(test_client, test_task, test_project_user, test_project_member, auth_cookies):
+    assign_response = await test_client.patch(
+        f"/api/v1/projects/{test_task.project_public_id}/tasks/{test_task.task_public_id}/assignee/{test_project_user.public_id}",
+        cookies=auth_cookies
+    )
+    assert assign_response.status_code == 200
+
+@pytest.mark.asyncio
+async def test_delete_assignee(test_client, test_task_assignee, auth_cookies):
+    assign_response = await test_client.delete(
+        f"/api/v1/projects/{test_task_assignee.project_public_id}/tasks/{test_task_assignee.task_public_id}/assignee",
+        cookies=auth_cookies
+    )
+    assert assign_response.status_code == 200
+
+@pytest.mark.asyncio
+async def test_self_assign(test_client, test_project, test_user, auth_cookies, test_unassigned_task):
+    assign_response = await test_client.post(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/{test_unassigned_task.task_public_id}/self-assign",
+        cookies=auth_cookies
+    )
+    assert assign_response.status_code == 200
+
+@pytest.mark.asyncio
+async def test_skip_status_todo_to_completed(test_client, test_project, auth_cookies, test_unassigned_task):
+    resp = await test_client.patch(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/{test_unassigned_task.task_public_id}/status/completed",
+        cookies=auth_cookies
+    )
+    assert resp.status_code == 403
+
+@pytest.mark.asyncio
+async def test_assign_on_review_task_blocked(test_client, test_task_assignee, test_project_user, test_project_member, auth_cookies):
+    await test_client.patch(
+        f"/api/v1/projects/{test_task_assignee.project_public_id}/tasks/{test_task_assignee.task_public_id}/status/review",
+        cookies=auth_cookies
+    )
+    resp = await test_client.patch(
+        f"/api/v1/projects/{test_task_assignee.project_public_id}/tasks/{test_task_assignee.task_public_id}/assignee/{test_project_user.public_id}",
+        cookies=auth_cookies
+    )
+    assert resp.status_code == 403
+
+@pytest.mark.asyncio
+async def test_self_assign_already_taken(test_client, test_project, auth_cookies, test_task_assignee):
+    resp = await test_client.post(
+        f"/api/v1/projects/{test_task_assignee.project_public_id}/tasks/{test_task_assignee.task_public_id}/self-assign",
+        cookies=auth_cookies
+    )
+    assert resp.status_code == 403

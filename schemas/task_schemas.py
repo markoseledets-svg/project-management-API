@@ -1,7 +1,7 @@
-from pydantic import BaseModel, model_validator, Field, ConfigDict
+from pydantic import BaseModel, model_validator, Field, ConfigDict, EmailStr
 import uuid
 
-from database.db_model import UserRole
+from database.db_model import UserRole, TaskStatus
 
 class BaseTaskModel(BaseModel):
     task_name: str = Field(min_length=1, max_length=255)
@@ -9,7 +9,7 @@ class BaseTaskModel(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True)
 class PostTaskModel(BaseTaskModel):
-    pass 
+    assignee_id: uuid.UUID | None = None
 
 
 class UpdateTaskModel(BaseModel):
@@ -26,7 +26,10 @@ class UpdateTaskModel(BaseModel):
         
 class GetTaskModel(BaseTaskModel):
     task_public_id: uuid.UUID
-    status: bool
+    status: TaskStatus
+    assignee_id: uuid.UUID | None = None
     
     model_config = ConfigDict(from_attributes=True)
 
+class TaskWithAssigneeModel(GetTaskModel):
+    email: EmailStr | None = None

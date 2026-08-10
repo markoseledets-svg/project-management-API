@@ -215,10 +215,10 @@ Swagger UI: `http://localhost:8000/docs` (only when `ENV=development`)
 - [ ] User CRUD (profile update, account management)
 - [x] Email verification on registration (OTP via SMTP)
 - [ ] Task priority and sorting
-- [ ] New task statuses and task proccessing (uncomplited, in progres (project members can take task, reviewing, comlited))
+- [x] New task statuses and task processing (uncompleted, in progres (project members can take task, reviewing, comleted))
 - [x] Project member management (invite, remove, change roles, leave, ownership transfer)
 - [x] Hard delete with project name confirmation and archived status check
-
+- [ ] OAuth - authorization using third-party applications
 #### Infrastructure
 - [x] Redis for Rate Limiting, OTP storage, and Token Blacklisting
 - [ ] Background scheduled tasks for expired data cleanup and expiration

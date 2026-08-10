@@ -12,7 +12,7 @@ from tests.factories.users import UserFactory, RefreshFactory
 from tests.factories.invitations import InvitationFactory
 from tests.factories.projects import ProjectFactory, UserProjectFactory
 from tests.factories.tasks import TaskFactory
-from database.db_model import Base, UserRole, InvitationStatus, ProjectStatus
+from database.db_model import Base, UserRole, InvitationStatus, ProjectStatus, TaskStatus
 from app.api.dependencies.db_dependencies import get_db
 from app.api.dependencies.redis_dependencies import get_redis
 from app.main import app
@@ -99,7 +99,19 @@ async def test_project(test_user):
 
 @pytest.fixture
 async def test_task(test_project):
-    return await TaskFactory.create_async(project_public_id = test_project.project_public_id)
+    return await TaskFactory.create_async(
+        project_public_id = test_project.project_public_id,
+        assignee_id = None,
+        status = TaskStatus.TODO
+    )
+
+@pytest.fixture
+async def test_unassigned_task(test_project):
+    return await TaskFactory.create_async(
+        project_public_id = test_project.project_public_id,
+        assignee_id = None,
+        status = TaskStatus.TODO
+    )
 
 @pytest.fixture
 async def test_project_user(test_user):
@@ -134,3 +146,28 @@ async def test_invitation(test_user, test_project_user, test_project):
         user_role = UserRole.ADMIN,
         status = InvitationStatus.PENDING
     )
+
+@pytest.fixture
+async def test_task_assignee(test_task, test_project, test_project_user):
+    return await TaskFactory.create_async(
+        project_public_id = test_project.project_public_id,
+        assignee_id = test_project_user.public_id,
+        status = TaskStatus.IN_PROGRESS
+    )
+
+@pytest.fixture
+async def test_task_review(test_project, test_project_user):
+    return await TaskFactory.create_async(
+        project_public_id = test_project.project_public_id,
+        assignee_id = test_project_user.public_id,
+        status = TaskStatus.REVIEW
+    )
+
+@pytest.fixture
+async def test_task_completed(test_project, test_project_user):
+    return await TaskFactory.create_async(
+        project_public_id = test_project.project_public_id,
+        assignee_id = test_project_user.public_id,
+        status = TaskStatus.COMPLETED
+    )
+    

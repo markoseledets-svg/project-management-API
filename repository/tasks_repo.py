@@ -1,12 +1,11 @@
-import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
 from typing import List,Optional
 from repository.base_repo import BaseRepository
-from database.db_model import TaskModel
-from schemas.task_schemas import GetTaskModel
+from database.db_model import TaskModel, UserModel
+from schemas.task_schemas import GetTaskModel, TaskWithAssigneeModel
 
 
 class TasksRepository(BaseRepository[TaskModel]):
@@ -24,10 +23,22 @@ class TasksRepository(BaseRepository[TaskModel]):
         )
     
     
-    async def get_user_tasks_request(self,project_public_id:uuid.UUID) -> Optional[List[TaskModel]]:
+    async def get_user_tasks_request(self,project_public_id:uuid.UUID) -> Optional[List[TaskWithAssigneeModel]]:
         tasks = await self.session.execute(
-            select(TaskModel)
-            .where(TaskModel.project_public_id == project_public_id)  
+            select(TaskModel, UserModel.email)
+            .outerjoin(UserModel, TaskModel.assignee_id == UserModel.public_id)
+            .where(TaskModel.project_public_id == project_public_id)
         )
-        return tasks.scalars().all()
-        
+        task_list = []
+        for task, email in tasks.all():
+            task_i = TaskWithAssigneeModel(
+                task_name=task.task_name,
+                description=task.description,
+                task_public_id=task.task_public_id,
+                assignee_id=task.assignee_id,
+                status=task.status,
+                email=email
+            )
+            task_list.append(task_i)
+        return task_list
+

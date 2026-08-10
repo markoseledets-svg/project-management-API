@@ -25,6 +25,12 @@ class InvitationStatus(str, Enum):
     REVOKED = "revoked"
     EXPIRED = "expired"
 
+class TaskStatus(str, Enum):
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    REVIEW = "review"
+    TODO = "todo"
+
 class Base(DeclarativeBase):
     pass
 
@@ -52,6 +58,7 @@ class UserModel(Base):
         passive_deletes=True, 
         foreign_keys='[InvitationModel.target_user_public_id]'
         )
+    task_relation: Mapped[List["TaskModel"]] = relationship(back_populates="user_relation")
 
 class RefreshTokenModel(Base):
     __tablename__ = "refresh_tokens"
@@ -93,10 +100,12 @@ class TaskModel(Base):
                                                             ForeignKey("projects.project_public_id", ondelete="CASCADE"),
                                                             nullable=False
                                                         )
+    assignee_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.public_id"), default=None, nullable=True)
     task_name: Mapped[str] = mapped_column(nullable=False)
     description: Mapped[str] = mapped_column(nullable=True)
-    status: Mapped[bool] = mapped_column(default=False)
+    status: Mapped[TaskStatus] = mapped_column(default=TaskStatus.TODO)
 
+    user_relation: Mapped["UserModel"] = relationship(back_populates = "task_relation")
     project_relation: Mapped["ProjectModel"] = relationship(back_populates="task_relation")
 
 class ProjectModel(Base):

@@ -157,26 +157,45 @@
         .filter-pill.active { background: var(--surface-2); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
 
         /* Tasks Grid */
-        .tasks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 0.875rem; }
-        .task-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.125rem; transition: all 0.25s; position: relative; overflow: hidden; }
-        .task-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 3px 0 0 3px; background: var(--primary); opacity: 0; transition: opacity 0.2s; }
-        .task-card:hover { border-color: rgba(99,102,241,0.25); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
-        .task-card:hover::before { opacity: 1; }
-        .task-card.done { opacity: 0.6; }
-        .task-card.done::before { background: var(--success); }
-        .task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.625rem; margin-bottom: 0.625rem; }
-        .task-title { font-weight: 600; font-size: 0.9rem; line-height: 1.4; word-break: break-word; flex: 1; }
+        .tasks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
+        .task-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0; transition: all 0.25s; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        .task-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 3px 0 0 3px; background: var(--primary); transition: opacity 0.2s; }
+        .task-card.status-todo::before { background: var(--warning); opacity: 1; }
+        .task-card.status-in_progress::before { background: var(--info); opacity: 1; }
+        .task-card.status-review::before { background: #a78bfa; opacity: 1; }
+        .task-card.status-completed::before { background: var(--success); opacity: 1; }
+        .task-card:hover { border-color: rgba(99,102,241,0.25); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .task-card.done { opacity: 0.55; }
+
+        .task-card-body { padding: 1.125rem 1.25rem 0.75rem 1.25rem; flex: 1; }
+        .task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.5rem; }
+        .task-title { font-weight: 700; font-size: 0.95rem; line-height: 1.4; word-break: break-word; flex: 1; }
         .task-title.crossed { text-decoration: line-through; color: var(--text-muted); }
-        .badge { padding: 0.15rem 0.5rem; border-radius: 20px; font-size: 0.65rem; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+        .badge { padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.65rem; font-weight: 700; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.02em; }
         .badge-todo { background: var(--warning-bg); color: var(--warning); }
         .badge-done { background: var(--success-bg); color: var(--success); }
-        .task-desc { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 0.875rem; }
+        .task-desc { font-size: 0.8rem; color: var(--text-soft); line-height: 1.55; margin-bottom: 0.75rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .task-assignee { display: flex; align-items: center; gap: 0.5rem; font-size: 0.78rem; color: var(--text-soft); padding: 0.5rem 0; border-top: 1px solid var(--border); margin-top: auto; }
+        .task-assignee-avatar { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--accent)); display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 800; color: #fff; flex-shrink: 0; }
+        .task-assignee-unset { opacity: 0.4; font-style: italic; }
+
+        .task-actions { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.625rem 1.25rem; border-top: 1px solid var(--border); background: rgba(0,0,0,0.12); }
+        .task-actions-left { display: flex; gap: 0.375rem; flex-wrap: wrap; }
+        .task-actions-right { display: flex; gap: 0.25rem; flex-shrink: 0; }
+
         .task-bottom { display: flex; align-items: center; justify-content: flex-end; gap: 0.35rem; }
-        .icon-btn { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; transition: all 0.2s; }
+        .icon-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; transition: all 0.2s; }
         .icon-btn:hover { background: var(--surface-2); color: var(--text); }
         .icon-btn.check:hover { background: var(--success-bg); color: var(--success); border-color: rgba(16,185,129,0.3); }
         .icon-btn.edit:hover { background: var(--primary-glow); color: var(--primary); border-color: rgba(99,102,241,0.3); }
         .icon-btn.del:hover { background: var(--danger-bg); color: var(--danger); border-color: rgba(239,68,68,0.3); }
+
+        .btn-success { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
+        .btn-success:hover { background: rgba(16,185,129,0.2); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.15); }
+        .btn-info { background: var(--info-bg); color: var(--info); border: 1px solid rgba(56,189,248,0.2); }
+        .btn-info:hover { background: rgba(56,189,248,0.18); }
+        .btn-accent { background: rgba(139,92,246,0.12); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
+        .btn-accent:hover { background: rgba(139,92,246,0.2); }
 
         /* Members Table */
         .members-table { width: 100%; border-collapse: separate; border-spacing: 0; }
@@ -276,6 +295,30 @@
         .inv-status-rejected { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
         .inv-status-revoked { background: rgba(100,116,139,0.2); color: var(--text-soft); }
         .inv-status-expired { background: rgba(100,116,139,0.15); color: var(--text-muted); }
+
+        /* Task Status Badges */
+        .badge-todo { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(245,158,11,0.2); }
+        .badge-in_progress { background: var(--info-bg); color: var(--info); border: 1px solid rgba(56,189,248,0.2); }
+        .badge-review { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
+        .badge-completed { background: var(--success-bg); color: var(--success); border: 1px solid rgba(16,185,129,0.2); }
+
+        /* Assignee Selector List (UX for 20-30+ members) */
+        .assignee-select-list {
+            max-height: 160px; overflow-y: auto; background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border); border-radius: var(--radius-sm);
+            display: flex; flex-direction: column; gap: 2px; padding: 4px;
+        }
+        .assignee-select-list::-webkit-scrollbar { width: 4px; }
+        .assignee-select-list::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
+        .assignee-select-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0.5rem 0.75rem; border-radius: 6px; cursor: pointer;
+            font-size: 0.825rem; transition: all 0.15s; border: 1px solid transparent;
+        }
+        .assignee-select-item:hover { background: var(--surface-3); }
+        .assignee-select-item.selected { background: var(--primary-glow); border-color: rgba(99,102,241,0.4); color: #fff; }
+        .assignee-user-email { font-weight: 500; }
+        .assignee-user-role { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; padding: 0.1rem 0.4rem; border-radius: 4px; }
     </style>
 </head>
 <body>
@@ -417,13 +460,36 @@
 </div>
 <!-- Create Task -->
 <div class="overlay" id="task-create-modal">
-    <div class="modal">
+    <div class="modal" style="max-width: 460px;">
         <div class="modal-title">✨ New Task</div>
         <div class="form-group"><label>Task name *</label><input class="form-control" id="new-task-name" placeholder="What needs to be done?" /></div>
         <div class="form-group"><label>Description</label><textarea class="form-control" id="new-task-desc" placeholder="Optional details…"></textarea></div>
+        <div class="form-group">
+            <label>Assignee (Optional)</label>
+            <input class="form-control" id="new-task-assignee-search" placeholder="🔍 Search member by email…" oninput="filterAssigneeOptions('new-task-assignee-list', this.value)" style="margin-bottom:0.4rem;font-size:0.8rem;" />
+            <div id="new-task-assignee-list" class="assignee-select-list"></div>
+            <input type="hidden" id="new-task-assignee-id" value="" />
+        </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
             <button class="btn btn-primary" onclick="createTask()">Create Task</button>
+        </div>
+    </div>
+</div>
+<!-- Assign Task Member -->
+<div class="overlay" id="task-assign-modal">
+    <div class="modal" style="max-width: 440px;">
+        <div class="modal-title">👤 Assign Task Member</div>
+        <input type="hidden" id="assign-task-id" />
+        <div class="form-group">
+            <label>Select Project Member</label>
+            <input class="form-control" id="assign-task-search" placeholder="🔍 Search member by email…" oninput="filterAssigneeOptions('assign-task-list', this.value)" style="margin-bottom:0.4rem;font-size:0.8rem;" />
+            <div id="assign-task-list" class="assignee-select-list"></div>
+            <input type="hidden" id="assign-task-user-id" value="" />
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeModals()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitAssignUser()">Assign User</button>
         </div>
     </div>
 </div>
@@ -445,7 +511,6 @@
     <div class="modal" style="max-width: 480px;">
         <div class="modal-title" style="display:flex;align-items:center;justify-content:space-between;">
             <span>🔔 My Invitations</span>
-            <button class="btn btn-ghost btn-sm" onclick="closeModals()" style="padding:0.2rem 0.5rem;">✕</button>
         </div>
         <div id="notifications-list" style="max-height:360px;overflow-y:auto;padding-right:4px;"></div>
         <div class="modal-footer">
@@ -504,7 +569,7 @@ async function apiFetch(url, options = {}) {
         } else if (typeof err.detail === 'object' && err.detail !== null) {
             msg = JSON.stringify(err.detail);
         }
-        throw new Error(msg || `HTTP ${res.status}`);
+        throw new Error(`${res.status}: ${msg || res.statusText || 'Request failed'}`);
     }
     const text = await res.text();
     return text ? JSON.parse(text) : null;
@@ -589,7 +654,7 @@ async function acceptInvitation(invId) {
 }
 async function rejectInvitation(invId) {
     try {
-        await apiPatch(`${API}/projects/reject-invitation/${invId}`);
+        await apiPatch(`${API}/projects/decline-invitation/${invId}`);
         toast('Invitation declined', 'success');
         await loadUserInvitations();
         renderNotificationsList();
@@ -631,11 +696,11 @@ async function selectProject(pid) {
 }
 async function onProjectSelected() {
     await loadTasks();
+    await loadProjectMembers();
     if (canManageMembers()) {
-        try { members = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`); } catch { members = []; }
         try { projectInvitations = await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`) || []; } catch { projectInvitations = []; }
     } else {
-        members = []; projectInvitations = [];
+        projectInvitations = [];
     }
     renderProjectView();
 }
@@ -696,7 +761,7 @@ function showProjectCtx(e, pid) {
     e.preventDefault(); e.stopPropagation();
     const p = projects.find(x => x.project_public_id === pid);
     if (!p) return;
-    selectedProject = p; renderProjects();
+    selectedProject = p;
     const role = p.user_role;
     const isO = role === 'owner'; const isA = role === 'admin' || isO; const isE = role === 'editor' || isA;
     let items = '';
@@ -719,6 +784,14 @@ function showProjectCtx(e, pid) {
 function closeCtx() { document.getElementById('ctx-menu').classList.remove('open'); }
 
 // ══ MEMBERS & INVITATIONS ══
+async function loadProjectMembers() {
+    if (!selectedProject) return [];
+    try {
+        members = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`) || [];
+    } catch(e) { members = []; toast(e.message, 'error'); }
+    return members;
+}
+
 function openAddUser() { 
     if (!selectedProject) return; 
     document.getElementById('invite-email').value = ''; 
@@ -744,7 +817,7 @@ async function submitAddUser() {
 }
 async function removeMember(uid) {
     if (!confirm('Remove this member from the project?')) return;
-    try { await apiDel(`${API}/projects/delete-member/${selectedProject.project_public_id}/${uid}`); members = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`); renderProjectView(); toast('Member removed', 'success'); } catch(e) { toast(e.message, 'error'); }
+    try { await apiDel(`${API}/projects/delete-member/${selectedProject.project_public_id}/${uid}`); members = await loadProjectMembers(); renderProjectView(); toast('Member removed', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
 function openChangeRole(uid, email, currentRole) {
     document.getElementById('change-role-uid').value = uid;
@@ -757,7 +830,7 @@ function openChangeRole(uid, email, currentRole) {
 async function submitChangeRole() {
     const uid = document.getElementById('change-role-uid').value;
     const role = document.getElementById('change-role-value').value;
-    try { await apiPatch(`${API}/projects/change-role/${selectedProject.project_public_id}`, { user_public_id: uid, user_role: role }); closeModals(); members = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`); await loadProjects(); renderProjectView(); toast('🔧 Role updated!', 'success'); } catch(e) { toast(e.message, 'error'); }
+    try { await apiPatch(`${API}/projects/change-role/${selectedProject.project_public_id}`, { user_public_id: uid, user_role: role }); closeModals(); members = await loadProjectMembers(); await loadProjects(); renderProjectView(); toast('🔧 Role updated!', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
 function openReassignOwner(uid, email) {
     document.getElementById('reassign-owner-uid').value = uid;
@@ -769,10 +842,51 @@ async function submitReassignOwner() {
     try { await apiPatch(`${API}/projects/reassign-owner/${selectedProject.project_public_id}/${uid}`); closeModals(); await loadProjects(); toast('👑 Ownership transferred!', 'success'); } catch(e) { toast(e.message, 'error'); }
 }
 
+// ══ ASSIGNEE SELECTOR PICKER (UX FOR 20-30+ MEMBERS) ══
+function renderAssigneePicker(containerId, hiddenInputId, selectedId = null, filterQuery = '') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const assignableMembers = members.filter(m => m.user_role !== 'viewer');
+    const query = filterQuery.toLowerCase().trim();
+    const filtered = assignableMembers.filter(m => m.email.toLowerCase().includes(query));
+
+    let html = `<div class="assignee-select-item ${!selectedId ? 'selected' : ''}" onclick="selectAssigneeOption('${containerId}', '${hiddenInputId}', null, this)">
+        <span class="assignee-user-email">🚫 Unassigned</span>
+        <span class="assignee-user-role" style="background:rgba(255,255,255,0.1);color:var(--text-soft)">TODO</span>
+    </div>`;
+
+    if (filtered.length === 0 && query) {
+        html += `<div style="padding:0.5rem;font-size:0.75rem;color:var(--text-muted);text-align:center;">No matching members</div>`;
+    } else {
+        html += filtered.map(m => {
+            const isSel = selectedId === m.public_id;
+            const roleClass = `role-${m.user_role}`;
+            return `<div class="assignee-select-item ${isSel ? 'selected' : ''}" onclick="selectAssigneeOption('${containerId}', '${hiddenInputId}', '${m.public_id}', this)">
+                <span class="assignee-user-email">👤 ${esc(m.email)}</span>
+                <span class="assignee-user-role ${roleClass}">${m.user_role}</span>
+            </div>`;
+        }).join('');
+    }
+    container.innerHTML = html;
+}
+
+function filterAssigneeOptions(containerId, query) {
+    const hiddenInputId = containerId === 'new-task-assignee-list' ? 'new-task-assignee-id' : 'assign-task-user-id';
+    const currentSelected = document.getElementById(hiddenInputId).value || null;
+    renderAssigneePicker(containerId, hiddenInputId, currentSelected, query);
+}
+
+function selectAssigneeOption(containerId, hiddenInputId, userId, el) {
+    document.getElementById(hiddenInputId).value = userId || '';
+    const container = document.getElementById(containerId);
+    container.querySelectorAll('.assignee-select-item').forEach(item => item.classList.remove('selected'));
+    el.classList.add('selected');
+}
+
 // ══ TASKS ══
 async function loadTasks() {
     if (!selectedProject) return;
-    try { tasks = await apiGet(`${API}/projects/${selectedProject.project_public_id}/tasks/`); } catch { tasks = []; }
+    try { tasks = await apiGet(`${API}/projects/${selectedProject.project_public_id}/tasks/`); } catch(e) { tasks = []; toast(e.message, 'error'); }
 }
 function renderProjectView() {
     const p = selectedProject;
@@ -783,22 +897,28 @@ function renderProjectView() {
     statusEl.className = `topbar-status status-${p.status}`;
     const acts = [];
     if (canManageMembers()) acts.push(`<button class="btn btn-ghost btn-sm" onclick="openAddUser()">✉️ Invite</button>`);
-    if (isEditor()) acts.push(`<button class="btn btn-primary btn-sm" onclick="openModal('task-create-modal')">＋ New Task</button>`);
+    if (isEditor()) acts.push(`<button class="btn btn-primary btn-sm" onclick="openCreateTaskModal()">＋ New Task</button>`);
     document.getElementById('topbar-actions').innerHTML = acts.join('');
 
     const content = document.getElementById('content');
-    const total = tasks.length, done = tasks.filter(t => t.status).length, active = total - done;
+    const total = tasks.length;
+    const todoCount = tasks.filter(t => t.status === 'todo').length;
+    const inProgressCount = tasks.filter(t => t.status === 'in_progress').length;
+    const reviewCount = tasks.filter(t => t.status === 'review').length;
+    const completedCount = tasks.filter(t => t.status === 'completed').length;
     const showMemberTab = canManageMembers();
 
     let html = `<div class="stats-grid">
         <div class="stat-card"><div class="stat-label">Total Tasks</div><div class="stat-value stat-primary">${total}</div></div>
-        <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-value stat-success">${done}</div></div>
-        <div class="stat-card"><div class="stat-label">In Progress</div><div class="stat-value stat-warning">${active}</div></div>
+        <div class="stat-card"><div class="stat-label">Todo</div><div class="stat-value stat-warning">${todoCount}</div></div>
+        <div class="stat-card"><div class="stat-label">In Progress</div><div class="stat-value" style="color:var(--info);">${inProgressCount}</div></div>
+        <div class="stat-card"><div class="stat-label">In Review</div><div class="stat-value" style="color:#a78bfa;">${reviewCount}</div></div>
+        <div class="stat-card"><div class="stat-label">Completed</div><div class="stat-value stat-success">${completedCount}</div></div>
     </div>`;
 
     if (showMemberTab) {
         html += `<div class="view-tabs">
-            <button class="view-tab ${activeTab==='tasks'?'active':''}" onclick="switchViewTab('tasks')">📋 Tasks</button>
+            <button class="view-tab ${activeTab==='tasks'?'active':''}" onclick="switchViewTab('tasks')">📋 Tasks (${total})</button>
             <button class="view-tab ${activeTab==='members'?'active':''}" onclick="switchViewTab('members')">👥 Members (${members.length})</button>
             <button class="view-tab ${activeTab==='invitations'?'active':''}" onclick="switchViewTab('invitations')">✉️ Invitations (${projectInvitations.length})</button>
         </div>`;
@@ -821,39 +941,104 @@ async function switchViewTab(tab) {
 
 function renderTasksTab() {
     const container = document.getElementById('tab-content');
-    const labels = { all: 'All Tasks', active: 'In Progress', done: 'Completed' };
+    const labels = { all: 'All Tasks', todo: '⏳ Todo', in_progress: '🔄 In Progress', review: '👁️ In Review', completed: '✅ Completed' };
     let html = `<div class="content-header"><div class="content-title">${labels[taskFilter]}</div>
         <div class="filter-pills">
             <button class="filter-pill ${taskFilter==='all'?'active':''}" onclick="setFilter('all')">All</button>
-            <button class="filter-pill ${taskFilter==='active'?'active':''}" onclick="setFilter('active')">Active</button>
-            <button class="filter-pill ${taskFilter==='done'?'active':''}" onclick="setFilter('done')">Done</button>
+            <button class="filter-pill ${taskFilter==='todo'?'active':''}" onclick="setFilter('todo')">Todo</button>
+            <button class="filter-pill ${taskFilter==='in_progress'?'active':''}" onclick="setFilter('in_progress')">Progress</button>
+            <button class="filter-pill ${taskFilter==='review'?'active':''}" onclick="setFilter('review')">Review</button>
+            <button class="filter-pill ${taskFilter==='completed'?'active':''}" onclick="setFilter('completed')">Done</button>
         </div></div><div class="tasks-grid" id="tasks-grid"></div>`;
     container.innerHTML = html;
     renderTaskCards();
 }
 function setFilter(f) { taskFilter = f; renderTasksTab(); }
 function getFiltered() {
-    if (taskFilter === 'done') return tasks.filter(t => t.status);
-    if (taskFilter === 'active') return tasks.filter(t => !t.status);
-    return tasks;
+    if (taskFilter === 'all') return tasks;
+    return tasks.filter(t => t.status === taskFilter);
 }
 function renderTaskCards() {
     const grid = document.getElementById('tasks-grid');
     if (!grid) return;
     const list = getFiltered();
-    if (!list.length) { grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><h3>No tasks here</h3><p>${isEditor() ? 'Create your first task using the button above.' : 'No tasks to show.'}</p></div>`; return; }
+    if (!list.length) { grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><h3>No tasks here</h3><p>${isEditor() ? 'Create a task or change filter.' : 'No tasks to show.'}</p></div>`; return; }
+    
     grid.innerHTML = list.map(t => {
-        const sb = t.status ? `<span class="badge badge-done">✓ Done</span>` : `<span class="badge badge-todo">⏳ Todo</span>`;
-        const btns = [];
-        if (isEditor()) {
-            btns.push(`<button class="icon-btn check" onclick="toggleTask(event,'${t.task_public_id}')" title="Toggle">✓</button>`);
-            btns.push(`<button class="icon-btn edit" onclick="openEditTask(event,'${t.task_public_id}')" title="Edit">✎</button>`);
-            btns.push(`<button class="icon-btn del" onclick="deleteTask(event,'${t.task_public_id}')" title="Delete">✕</button>`);
+        const statusMap = {
+            todo: { label: 'Todo', class: 'badge-todo', icon: '○' },
+            in_progress: { label: 'In Progress', class: 'badge-in_progress', icon: '◐' },
+            review: { label: 'In Review', class: 'badge-review', icon: '◉' },
+            completed: { label: 'Completed', class: 'badge-completed', icon: '●' }
+        };
+        const sInfo = statusMap[t.status] || { label: t.status, class: 'badge-todo', icon: '○' };
+        const sb = `<span class="badge ${sInfo.class}">${sInfo.icon} ${sInfo.label}</span>`;
+        
+        // Assignee section
+        let assigneeHtml;
+        if (t.email) {
+            const initial = t.email[0].toUpperCase();
+            assigneeHtml = `<div class="task-assignee"><div class="task-assignee-avatar">${initial}</div><span>${esc(t.email)}</span></div>`;
+        } else {
+            assigneeHtml = `<div class="task-assignee"><span class="task-assignee-unset">No one assigned</span></div>`;
         }
-        return `<div class="task-card ${t.status?'done':''}">
-            <div class="task-top"><div class="task-title ${t.status?'crossed':''}">${esc(t.task_name)}</div>${sb}</div>
-            <div class="task-desc">${t.description ? esc(t.description) : '<span style="font-style:italic;opacity:0.5">No description</span>'}</div>
-            <div class="task-bottom">${btns.join('')}</div>
+        
+        const isE = isEditor(), isA = isAdmin();
+        const isSelfAssigned = currentUser && (t.assignee_id === currentUser.public_id);
+        const canModifyAssignee = t.status === 'todo' || t.status === 'in_progress';
+        
+        // Workflow action buttons (left side)
+        const workflowBtns = [];
+
+        // Self Assign — only TODO tasks without assignee
+        if (t.status === 'todo' && !t.assignee_id && isE) {
+            workflowBtns.push(`<button class="btn btn-info btn-sm" onclick="selfAssignTask(event,'${t.task_public_id}')" title="Take this task">✋ Take Task</button>`);
+        }
+        // Assign / Reassign Member — only TODO and IN_PROGRESS (Admin/Owner)
+        if (isA && canModifyAssignee) {
+            workflowBtns.push(`<button class="btn btn-ghost btn-sm" onclick="openAssignTaskModal(event,'${t.task_public_id}')" title="Assign a team member">${t.assignee_id ? '🔄 Reassign' : '👤 Assign'}</button>`);
+        }
+        // Remove Assignee — only TODO and IN_PROGRESS with assignee (Admin/Owner)
+        if (t.assignee_id && isA && canModifyAssignee) {
+            workflowBtns.push(`<button class="btn btn-ghost btn-sm" onclick="removeTaskAssignee(event,'${t.task_public_id}')" title="Remove current assignee" style="color:var(--danger)">✕ Unassign</button>`);
+        }
+        // Send to Review (IN_PROGRESS -> REVIEW)
+        if (t.status === 'in_progress' && (isA || isSelfAssigned)) {
+            workflowBtns.push(`<button class="btn btn-accent btn-sm" onclick="sendTaskToReview(event,'${t.task_public_id}')" title="Submit for review">📤 Submit for Review</button>`);
+        }
+        // Cancel Review (REVIEW -> IN_PROGRESS)
+        if (t.status === 'review' && (isA || isSelfAssigned)) {
+            workflowBtns.push(`<button class="btn btn-ghost btn-sm" onclick="cancelTaskReview(event,'${t.task_public_id}')" title="Send back to In Progress">↩ Back to Progress</button>`);
+        }
+        // Complete Task (REVIEW -> COMPLETED) — Admin/Owner only
+        if (t.status === 'review' && isA) {
+            workflowBtns.push(`<button class="btn btn-success btn-sm" onclick="completeTask(event,'${t.task_public_id}')" title="Approve and mark complete">✓ Approve</button>`);
+        }
+        // Reopen Completed Task (COMPLETED -> REVIEW) — Admin/Owner only
+        if (t.status === 'completed' && isA) {
+            workflowBtns.push(`<button class="btn btn-ghost btn-sm" onclick="cancelCompletedTask(event,'${t.task_public_id}')" title="Reopen this task">↩ Reopen</button>`);
+        }
+        
+        // Management buttons (right side — edit/delete)
+        const mgmtBtns = [];
+        if (isE) {
+            mgmtBtns.push(`<button class="icon-btn edit" onclick="openEditTask(event,'${t.task_public_id}')" title="Edit task">✎</button>`);
+            mgmtBtns.push(`<button class="icon-btn del" onclick="deleteTask(event,'${t.task_public_id}')" title="Delete task">✕</button>`);
+        }
+
+        const hasActions = workflowBtns.length > 0 || mgmtBtns.length > 0;
+        const actionsHtml = hasActions ? `<div class="task-actions">
+            <div class="task-actions-left">${workflowBtns.join('')}</div>
+            <div class="task-actions-right">${mgmtBtns.join('')}</div>
+        </div>` : '';
+
+        return `<div class="task-card status-${t.status} ${t.status === 'completed' ? 'done' : ''}">
+            <div class="task-card-body">
+                <div class="task-top"><div class="task-title ${t.status === 'completed' ? 'crossed' : ''}">${esc(t.task_name)}</div>${sb}</div>
+                <div class="task-desc">${t.description ? esc(t.description) : '<span style="font-style:italic;opacity:0.4">No description</span>'}</div>
+                ${assigneeHtml}
+            </div>
+            ${actionsHtml}
         </div>`;
     }).join('');
 }
@@ -939,13 +1124,35 @@ async function revokeInvitation(invId) {
     }
 }
 
-// ── Task CRUD ──
+// ── TASK CRUD & WORKFLOWS ──
+async function openCreateTaskModal() {
+    document.getElementById('new-task-name').value = '';
+    document.getElementById('new-task-desc').value = '';
+    document.getElementById('new-task-assignee-search').value = '';
+    document.getElementById('new-task-assignee-id').value = '';
+    await loadProjectMembers();
+    renderAssigneePicker('new-task-assignee-list', 'new-task-assignee-id', null, '');
+    openModal('task-create-modal');
+}
+
 async function createTask() {
     const name = document.getElementById('new-task-name').value.trim();
     const desc = document.getElementById('new-task-desc').value.trim();
+    const assigneeId = document.getElementById('new-task-assignee-id').value || null;
     if (!name) return toast('Task name is required', 'error');
-    try { await apiPost(`${API}/projects/${selectedProject.project_public_id}/tasks/`, { task_name: name, description: desc || null }); closeModals(); await loadTasks(); renderProjectView(); toast('✨ Task created!', 'success'); } catch(e) { toast(e.message, 'error'); }
+    try {
+        await apiPost(`${API}/projects/${selectedProject.project_public_id}/tasks/`, {
+            task_name: name,
+            description: desc || null,
+            assignee_id: assigneeId
+        });
+        closeModals();
+        await loadTasks();
+        renderProjectView();
+        toast('✨ Task created!', 'success');
+    } catch(e) { toast(e.message, 'error'); }
 }
+
 function openEditTask(e, tid) {
     e.stopPropagation();
     const t = tasks.find(x => x.task_public_id === tid); if (!t) return;
@@ -959,23 +1166,118 @@ async function submitEditTask() {
     const name = document.getElementById('edit-task-name').value.trim();
     const desc = document.getElementById('edit-task-desc').value.trim();
     if (!name) return toast('Task name is required', 'error');
-    try { await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}`, { task_name: name, description: desc || null }); closeModals(); await loadTasks(); renderProjectView(); toast('✏️ Task updated!', 'success'); } catch(e) { toast(e.message, 'error'); }
-}
-async function toggleTask(e, tid) {
-    e.stopPropagation();
-    try { await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/change-status`); const t = tasks.find(x => x.task_public_id === tid); if (t) t.status = !t.status; renderProjectView(); toast('✓ Status updated', 'success'); } catch(e) { toast(e.message, 'error'); }
+    try {
+        await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}`, { task_name: name, description: desc || null });
+        closeModals();
+        await loadTasks();
+        renderProjectView();
+        toast('✏️ Task updated!', 'success');
+    } catch(e) { toast(e.message, 'error'); }
 }
 async function deleteTask(e, tid) {
     e.stopPropagation();
     if (!confirm('Delete this task?')) return;
-    try { await apiDel(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}`); tasks = tasks.filter(t => t.task_public_id !== tid); renderProjectView(); toast('Task deleted', 'success'); } catch(e) { toast(e.message, 'error'); }
+    try {
+        await apiDel(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}`);
+        tasks = tasks.filter(t => t.task_public_id !== tid);
+        renderProjectView();
+        toast('Task deleted', 'success');
+    } catch(e) { toast(e.message, 'error'); }
+}
+
+async function selfAssignTask(e, tid) {
+    e.stopPropagation();
+    try {
+        await apiPost(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/self-assign`);
+        toast('✋ Task assigned to you!', 'success');
+        await loadTasks();
+        renderProjectView();
+    } catch(e) { toast(e.message, 'error'); }
+}
+
+async function openAssignTaskModal(e, tid) {
+    e.stopPropagation();
+    document.getElementById('assign-task-id').value = tid;
+    document.getElementById('assign-task-search').value = '';
+    document.getElementById('assign-task-user-id').value = '';
+    const task = tasks.find(t => t.task_public_id === tid);
+    await loadProjectMembers();
+    renderAssigneePicker('assign-task-list', 'assign-task-user-id', task ? task.assignee_id : null, '');
+    openModal('task-assign-modal');
+}
+
+async function submitAssignUser() {
+    const tid = document.getElementById('assign-task-id').value;
+    const uid = document.getElementById('assign-task-user-id').value;
+    try {
+        if (!uid) {
+            await apiDel(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/assignee`);
+            toast('Assignee removed', 'success');
+        } else {
+            await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/assignee/${uid}`);
+            toast('👤 Assignee updated!', 'success');
+        }
+        closeModals();
+        await loadTasks();
+        renderProjectView();
+    } catch(e) { toast(e.message, 'error'); }
+}
+
+async function removeTaskAssignee(e, tid) {
+    e.stopPropagation();
+    if (!confirm('Remove assignee from this task?')) return;
+    try {
+        await apiDel(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/assignee`);
+        toast('Assignee removed', 'success');
+        await loadTasks();
+        renderProjectView();
+    } catch(e) { toast(e.message, 'error'); }
+}
+
+async function sendTaskToReview(e, tid) {
+    e.stopPropagation();
+    try {
+        await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/status/review`);
+        toast('📤 Task sent to review', 'success');
+        await loadTasks();
+        renderProjectView();
+    } catch(e) { toast(e.message, 'error'); }
+}
+
+async function cancelTaskReview(e, tid) {
+    e.stopPropagation();
+    try {
+        await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/status/cancel-review`);
+        toast('↩️ Review status cancelled', 'success');
+        await loadTasks();
+        renderProjectView();
+    } catch(e) { toast(e.message, 'error'); }
+}
+
+async function completeTask(e, tid) {
+    e.stopPropagation();
+    try {
+        await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/status/completed`);
+        toast('✅ Task completed!', 'success');
+        await loadTasks();
+        renderProjectView();
+    } catch(e) { toast(e.message, 'error'); }
+}
+
+async function cancelCompletedTask(e, tid) {
+    e.stopPropagation();
+    try {
+        await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/status/cancel-completed`);
+        toast('↩️ Task reopened', 'success');
+        await loadTasks();
+        renderProjectView();
+    } catch(e) { toast(e.message, 'error'); }
 }
 
 // ══ UTILS ══
 function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function openModal(id) {
-    if (id === 'task-create-modal') { document.getElementById('new-task-name').value = ''; document.getElementById('new-task-desc').value = ''; }
-    else if (id === 'project-create-modal') { document.getElementById('new-project-name').value = ''; }
+    if (id === 'project-create-modal') { document.getElementById('new-project-name').value = ''; }
     document.getElementById(id).classList.add('open');
 }
 function closeModals() { document.querySelectorAll('.overlay').forEach(o => o.classList.remove('open')); }

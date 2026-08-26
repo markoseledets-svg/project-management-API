@@ -45,7 +45,11 @@ class UserModel(Base):
                                                   )
     email: Mapped[str] = mapped_column(nullable=False, unique=True)
     password: Mapped[str] = mapped_column(nullable=False)
-    
+    deletes_at: Mapped[datetime|None] = mapped_column(
+        DateTime(timezone=True), 
+        nullable=True,
+        default=None
+        )
     tokens: Mapped[List["RefreshTokenModel"]] = relationship(back_populates="user", passive_deletes=True)
     project_relation: Mapped[List["UserProjectRelation"]] = relationship(back_populates="user_relation", passive_deletes=True)
     invitation_sender_relation: Mapped[List["InvitationModel"]] = relationship(
@@ -82,6 +86,11 @@ class RefreshTokenModel(Base):
                                                 default= lambda: datetime.now(timezone.utc) + timedelta(days=14)
                                                 )
     family_id: Mapped[uuid.UUID] = mapped_column(nullable=False, default=uuid6.uuid8)
+    session_started_at: Mapped[datetime] = mapped_column(
+            DateTime(timezone=True),
+            nullable=False, 
+            default= lambda: datetime.now(timezone.utc)
+            )
     is_used: Mapped[bool] = mapped_column(nullable=False, default=False)
     user_agent: Mapped[str] = mapped_column(nullable=True)
 

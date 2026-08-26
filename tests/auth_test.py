@@ -1,8 +1,11 @@
 import pytest
 import json
 import asyncio
+import uuid6
+from datetime import datetime, timedelta, timezone
 
-from tests.factories.users import RAW_PASSWORD
+from tests.factories.users import RAW_PASSWORD, RefreshFactory
+from core.security import generate_access_jwt, generate_refresh_jwt
 
 @pytest.mark.asyncio
 async def test_registration_process(test_client, fake_redis):
@@ -143,3 +146,193 @@ async def test_token_retry_and_reuse(test_client, test_refresh_token):
             cookies=new_refresh_cookies
         )
     assert family_banned_request.status_code == 401
+
+@pytest.mark.asyncio
+async def test_get_active_sessions(test_client, auth_cookies):
+    response = await test_client.get(
+        "/api/v1/auth/active-sessions",
+        cookies=auth_cookies
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) >= 1
+    assert "token_public_id" in data[0]
+    assert "session_started_at" in data[0]
+
+@pytest.mark.asyncio
+async def test_active_sessions_filters_expired(test_client, test_user, auth_cookies):
+    await RefreshFactory.create_async(
+        user_public_id=test_user.public_id,
+        expired_at=datetime.now(timezone.utc) - timedelta(days=1)
+    )
+    response = await test_client.get(
+        "/api/v1/auth/active-sessions",
+        cookies=auth_cookies
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+
+@pytest.mark.asyncio
+async def test_logout_session_success(test_client, test_user, auth_cookies):
+    second_refresh = await RefreshFactory.create_async(user_public_id=test_user.public_id)
+    second_access = generate_access_jwt(test_user.public_id, second_refresh.family_id)
+    second_refresh_jwt = generate_refresh_jwt(test_user.public_id, second_refresh.token_public_id)
+
+    logout_response = await test_client.post(
+        f"/api/v1/auth/logout-session/{second_refresh.token_public_id}",
+        cookies=auth_cookies
+    )
+    assert logout_response.status_code == 204
+
+    me_response = await test_client.get(
+        "/api/v1/auth/me",
+        cookies={"access_token": second_access}
+    )
+    assert me_response.status_code == 401
+
+    refresh_response = await test_client.post(
+        "/api/v1/auth/refresh",
+        cookies={"refresh_token": second_refresh_jwt}
+    )
+    assert refresh_response.status_code == 401
+
+@pytest.mark.asyncio
+async def test_logout_session_not_found(test_client, auth_cookies):
+    fake_token_id = uuid6.uuid7()
+    response = await test_client.post(
+        f"/api/v1/auth/logout-session/{fake_token_id}",
+        cookies=auth_cookies
+    )
+    assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_logout_everywhere(test_client, test_user, auth_cookies):
+    second_refresh = await RefreshFactory.create_async(user_public_id=test_user.public_id)
+    second_access = generate_access_jwt(test_user.public_id, second_refresh.family_id)
+
+    response = await test_client.post(
+        "/api/v1/auth/logout-everywhere",
+        cookies=auth_cookies
+    )
+    assert response.status_code == 204
+
+    me_response_1 = await test_client.get(
+        "/api/v1/auth/me",
+        cookies=auth_cookies
+    )
+    assert me_response_1.status_code == 401
+
+    me_response_2 = await test_client.get(
+        "/api/v1/auth/me",
+        cookies={"access_token": second_access}
+    )
+    assert me_response_2.status_code == 401
+
+@pytest.mark.asyncio
+async def test_delete_and_restore_account_flow(test_client, test_user, auth_cookies):
+    delete_response = await test_client.delete(
+        "/api/v1/auth/delete-account",
+        cookies=auth_cookies
+    )
+    assert delete_response.status_code == 204
+
+    login_response = await test_client.post(
+        "/api/v1/auth/",
+        data={"username": test_user.email, "password": RAW_PASSWORD}
+    )
+    assert login_response.status_code == 200
+    login_data = login_response.json()
+    assert login_data["status"] == "pending_restore"
+    restore_token = login_data["restore_token"]
+
+    restore_response = await test_client.post(
+        "/api/v1/auth/restore-account",
+        json={"restore_token": restore_token}
+    )
+    assert restore_response.status_code == 204
+
+    login_after_restore = await test_client.post(
+        "/api/v1/auth/",
+        data={"username": test_user.email, "password": RAW_PASSWORD}
+    )
+    assert login_after_restore.status_code == 204
+
+@pytest.mark.asyncio
+async def test_restore_token_reuse_rejected(test_client, test_user, auth_cookies):
+    await test_client.delete(
+        "/api/v1/auth/delete-account",
+        cookies=auth_cookies
+    )
+    login_response = await test_client.post(
+        "/api/v1/auth/",
+        data={"username": test_user.email, "password": RAW_PASSWORD}
+    )
+    restore_token = login_response.json()["restore_token"]
+
+    first_restore = await test_client.post(
+        "/api/v1/auth/restore-account",
+        json={"restore_token": restore_token}
+    )
+    assert first_restore.status_code == 204
+
+    second_restore = await test_client.post(
+        "/api/v1/auth/restore-account",
+        json={"restore_token": restore_token}
+    )
+    assert second_restore.status_code == 401
+
+@pytest.mark.asyncio
+async def test_change_password_flow(test_client, test_user, auth_cookies):
+    change_response = await test_client.post(
+        "/api/v1/auth/change-password",
+        cookies=auth_cookies,
+        json={"old_password": RAW_PASSWORD, "password": "NewSecretPassword123!"}
+    )
+    assert change_response.status_code == 204
+
+    me_response = await test_client.get(
+        "/api/v1/auth/me",
+        cookies=auth_cookies
+    )
+    assert me_response.status_code == 401
+
+    login_new = await test_client.post(
+        "/api/v1/auth/",
+        data={"username": test_user.email, "password": "NewSecretPassword123!"}
+    )
+    assert login_new.status_code == 204
+
+@pytest.mark.asyncio
+async def test_change_password_invalid_old_password(test_client, auth_cookies):
+    change_response = await test_client.post(
+        "/api/v1/auth/change-password",
+        cookies=auth_cookies,
+        json={"old_password": "WrongPassword123!", "password": "NewSecretPassword123!"}
+    )
+    assert change_response.status_code == 401
+
+@pytest.mark.asyncio
+async def test_forgotten_password_flow(test_client, test_user, fake_redis):
+    new_pwd = "RecoveredPassword123!"
+    forgot_response = await test_client.post(
+        "/api/v1/auth/forgotten-password",
+        json={"email": test_user.email, "password": new_pwd}
+    )
+    assert forgot_response.status_code == 204
+
+    redis_data_str = await fake_redis.get(f"otp:users:{test_user.email}")
+    assert redis_data_str is not None
+    otp = json.loads(redis_data_str)["otp"]
+
+    verify_response = await test_client.post(
+        "/api/v1/auth/verify-password-change",
+        json={"email": test_user.email, "otp": otp}
+    )
+    assert verify_response.status_code == 204
+
+    login_response = await test_client.post(
+        "/api/v1/auth/",
+        data={"username": test_user.email, "password": new_pwd}
+    )
+    assert login_response.status_code == 204

@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TaskFlow — Sign In</title>
-    <meta name="description" content="TaskFlow project management — sign in or create your account.">
+    <title>TaskFlow — Sign In & Account Portal</title>
+    <meta name="description" content="TaskFlow project management — sign in, create your account, or restore deleted profile.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #050a18;
             --surface: rgba(15, 23, 42, 0.75);
+            --surface-2: #111a33;
+            --surface-3: #162040;
             --border: rgba(255,255,255,0.08);
             --border-focus: rgba(99,102,241,0.5);
             --primary: #6366f1;
@@ -20,7 +22,9 @@
             --text-muted: #64748b;
             --text-soft: #94a3b8;
             --success: #10b981;
+            --warning: #f59e0b;
             --danger: #ef4444;
+            --radius-sm: 10px;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -80,19 +84,19 @@
 
         /* Right Panel */
         .split-right {
-            width: 480px; min-height: 100vh;
+            width: 500px; min-height: 100vh;
             background: var(--surface); backdrop-filter: blur(24px);
             border-left: 1px solid var(--border);
             display: flex; align-items: center; justify-content: center;
             padding: 3rem; position: relative; z-index: 2;
         }
-        .auth-card { width: 100%; max-width: 380px; animation: fadeInUp 0.6s ease 0.2s both; }
-        .auth-header { margin-bottom: 2rem; }
-        .auth-header h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.375rem; }
-        .auth-header p { color: var(--text-muted); font-size: 0.9rem; }
+        .auth-card { width: 100%; max-width: 390px; animation: fadeInUp 0.6s ease 0.2s both; }
+        .auth-header { margin-bottom: 1.75rem; }
+        .auth-header h1 { font-size: 1.55rem; font-weight: 700; margin-bottom: 0.375rem; }
+        .auth-header p { color: var(--text-muted); font-size: 0.875rem; line-height: 1.45; }
 
         /* Tabs */
-        .auth-tabs { display: flex; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 4px; margin-bottom: 2rem; position: relative; }
+        .auth-tabs { display: flex; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 4px; margin-bottom: 1.75rem; position: relative; }
         .auth-tab {
             flex: 1; text-align: center; padding: 0.7rem 1rem; border-radius: 9px;
             cursor: pointer; font-weight: 600; font-size: 0.875rem;
@@ -109,18 +113,29 @@
         .tab-slider.right { transform: translateX(100%); }
 
         /* Form */
-        .form-group { margin-bottom: 1.25rem; position: relative; }
-        .form-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-soft); margin-bottom: 0.4rem; letter-spacing: 0.02em; }
+        .form-group { margin-bottom: 1.15rem; position: relative; }
+        .form-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; }
+        .form-label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-soft); letter-spacing: 0.02em; }
+        .form-label-link { font-size: 0.75rem; color: var(--primary); text-decoration: none; cursor: pointer; transition: color 0.2s; font-weight: 500; }
+        .form-label-link:hover { color: var(--accent); text-decoration: underline; }
         .input-wrapper { position: relative; }
         .form-input {
-            width: 100%; padding: 0.8rem 1rem 0.8rem 2.75rem;
+            width: 100%; padding: 0.8rem 1rem 0.8rem 2.6rem;
             background: rgba(0,0,0,0.25); border: 1px solid var(--border);
-            border-radius: 12px; color: var(--text); font-size: 0.925rem;
+            border-radius: 12px; color: var(--text); font-size: 0.92rem;
             font-family: inherit; outline: none; transition: all 0.25s;
         }
         .form-input::placeholder { color: var(--text-muted); }
         .form-input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--primary-glow); background: rgba(0,0,0,0.35); }
-        .input-icon { position: absolute; left: 0.875rem; top: 50%; transform: translateY(-50%); font-size: 1rem; opacity: 0.4; pointer-events: none; }
+        .input-icon { position: absolute; left: 0.875rem; top: 50%; transform: translateY(-50%); font-size: 0.95rem; opacity: 0.45; pointer-events: none; }
+
+        /* Password strength meter */
+        .strength-bar-container { display: none; margin-top: 0.5rem; }
+        .strength-bar-container.visible { display: block; }
+        .strength-track { width: 100%; height: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
+        .strength-fill { height: 100%; width: 0%; border-radius: 4px; transition: all 0.4s ease; }
+        .strength-info { display: flex; align-items: center; justify-content: space-between; margin-top: 0.25rem; font-size: 0.7rem; color: var(--text-muted); }
+        .strength-label { font-weight: 600; }
 
         /* OTP input */
         .otp-group { display: flex; gap: 0.5rem; justify-content: center; margin: 1.5rem 0; }
@@ -133,16 +148,9 @@
         }
         .otp-input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--primary-glow); }
 
-        /* Strength bar */
-        .strength-bar-container { display: none; margin-top: 0.5rem; }
-        .strength-bar-container.visible { display: block; }
-        .strength-track { width: 100%; height: 4px; background: rgba(255,255,255,0.06); border-radius: 4px; overflow: hidden; }
-        .strength-fill { height: 100%; width: 0%; border-radius: 4px; transition: all 0.4s ease; }
-        .strength-label { font-size: 0.7rem; margin-top: 0.25rem; font-weight: 600; }
-
         /* Buttons */
         .btn-submit {
-            width: 100%; padding: 0.875rem 1.5rem;
+            width: 100%; padding: 0.85rem 1.5rem;
             background: linear-gradient(135deg, var(--primary), var(--accent));
             color: #fff; border: none; border-radius: 12px;
             font-size: 0.95rem; font-weight: 700; font-family: inherit;
@@ -156,14 +164,30 @@
         .btn-submit.loading .spinner { display: inline-block; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .btn-link { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 0.8rem; font-weight: 600; font-family: inherit; margin-top: 0.75rem; display: block; text-align: center; transition: color 0.2s; }
+        .btn-secondary {
+            background: var(--surface-2); color: var(--text-soft);
+            border: 1px solid var(--border);
+        }
+        .btn-secondary:hover { background: var(--surface-3); color: #fff; }
+
+        .btn-link { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 0.8rem; font-weight: 600; font-family: inherit; margin-top: 0.85rem; display: block; width: 100%; text-align: center; transition: color 0.2s; }
         .btn-link:hover { color: var(--accent); }
 
         /* Message */
         .auth-message { margin-top: 1rem; text-align: center; font-size: 0.85rem; font-weight: 500; min-height: 22px; border-radius: 10px; padding: 0; transition: all 0.3s; }
-        .auth-message.show { padding: 0.65rem 1rem; background: rgba(0,0,0,0.2); }
-        .auth-message.error { color: var(--danger); }
-        .auth-message.success { color: var(--success); }
+        .auth-message.show { padding: 0.65rem 1rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border); }
+        .auth-message.error { color: var(--danger); border-color: rgba(239,68,68,0.2); }
+        .auth-message.success { color: var(--success); border-color: rgba(16,185,129,0.2); }
+        .auth-message.warning { color: var(--warning); border-color: rgba(245,158,11,0.2); }
+
+        /* Card alert boxes */
+        .info-card {
+            background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2);
+            border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; line-height: 1.5; color: var(--text-soft);
+        }
+        .info-card.warning-box {
+            background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.25); color: #fde68a;
+        }
 
         /* Views */
         .view { display: none; }
@@ -190,11 +214,11 @@
     <div class="brand-block">
         <div class="brand-logo">⚡</div>
         <h1 class="brand-title">Task<span>Flow</span></h1>
-        <p class="brand-subtitle">Manage projects, organize tasks, and collaborate with your team — all in one place.</p>
+        <p class="brand-subtitle">Manage projects, organize tasks, and collaborate with your team with ease and speed.</p>
         <div class="brand-features">
             <div class="feature-item"><div class="feature-icon">📁</div><div class="feature-text">Create and manage multiple projects</div></div>
-            <div class="feature-item"><div class="feature-icon">✅</div><div class="feature-text">Track tasks with real-time status updates</div></div>
-            <div class="feature-item"><div class="feature-icon">👥</div><div class="feature-text">Invite collaborators with role-based access</div></div>
+            <div class="feature-item"><div class="feature-icon">✅</div><div class="feature-text">Full task execution workflows & reviews</div></div>
+            <div class="feature-item"><div class="feature-icon">🛡️</div><div class="feature-text">Multi-device session control & security</div></div>
         </div>
     </div>
 </div>
@@ -202,7 +226,7 @@
 <div class="split-right">
     <div class="auth-card">
 
-        <!-- ═══ LOGIN / REGISTER VIEW ═══ -->
+        <!-- ═══ 1. LOGIN / REGISTER VIEW ═══ -->
         <div class="view active" id="view-auth">
             <div class="auth-header">
                 <h1 id="auth-title">Welcome back</h1>
@@ -222,14 +246,20 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="password">Password</label>
+                    <div class="form-label-row">
+                        <label class="form-label" for="password">Password</label>
+                        <span class="form-label-link" id="forgot-password-link" onclick="openForgotPassword()">Forgot password?</span>
+                    </div>
                     <div class="input-wrapper">
                         <span class="input-icon">🔒</span>
-                        <input type="password" id="password" class="form-input" required placeholder="Min 8 characters" minlength="8" maxlength="64" autocomplete="current-password" oninput="checkStrength()" />
+                        <input type="password" id="password" class="form-input" required placeholder="Min 8 characters" minlength="8" maxlength="64" autocomplete="current-password" oninput="checkStrength('password', 'strength-fill', 'strength-label')" />
                     </div>
                     <div class="strength-bar-container" id="strength-container">
                         <div class="strength-track"><div class="strength-fill" id="strength-fill"></div></div>
-                        <div class="strength-label" id="strength-label"></div>
+                        <div class="strength-info">
+                            <span>Strength</span>
+                            <span class="strength-label" id="strength-label"></span>
+                        </div>
                     </div>
                 </div>
                 <button type="submit" class="btn-submit" id="submit-btn">
@@ -239,13 +269,13 @@
             <div class="auth-message" id="auth-message"></div>
         </div>
 
-        <!-- ═══ OTP VERIFICATION VIEW ═══ -->
+        <!-- ═══ 2. OTP REGISTRATION VERIFICATION VIEW ═══ -->
         <div class="view" id="view-otp">
             <div class="auth-header">
                 <h1>Verify your email</h1>
-                <p>We sent a 6-digit code to <strong id="otp-email-display"></strong></p>
+                <p>We sent a 6-digit verification code to <strong id="otp-email-display" style="color:#fff"></strong></p>
             </div>
-            <div class="otp-group" id="otp-group">
+            <div class="otp-group" id="reg-otp-group">
                 <input type="text" class="otp-input" maxlength="1" inputmode="numeric" />
                 <input type="text" class="otp-input" maxlength="1" inputmode="numeric" />
                 <input type="text" class="otp-input" maxlength="1" inputmode="numeric" />
@@ -260,12 +290,90 @@
             <div class="auth-message" id="otp-message"></div>
         </div>
 
+        <!-- ═══ 3. ACCOUNT RESTORATION VIEW ═══ -->
+        <div class="view" id="view-restore">
+            <div class="auth-header">
+                <h1>Restore Account</h1>
+                <p>Your account is currently scheduled for deletion.</p>
+            </div>
+            <div class="info-card warning-box">
+                ⚠️ This account was marked for soft-deletion and is scheduled to be permanently erased on <strong id="restore-date-display">—</strong>.
+                <br><br>
+                Would you like to restore your account and cancel the deletion?
+            </div>
+            <button class="btn-submit" id="restore-submit-btn" onclick="submitAccountRestore()">
+                <span class="btn-text">✓ Restore My Account</span><span class="spinner"></span>
+            </button>
+            <button class="btn-link" onclick="cancelRestore()">← Back to Sign In</button>
+            <div class="auth-message" id="restore-message"></div>
+        </div>
+
+        <!-- ═══ 4. FORGOTTEN PASSWORD: STEP 1 (EMAIL & NEW PASSWORD) ═══ -->
+        <div class="view" id="view-forgot-password">
+            <div class="auth-header">
+                <h1>Reset Password</h1>
+                <p>Enter your account email and choose a new secure password.</p>
+            </div>
+            <form id="forgot-form" onsubmit="handleForgotPasswordRequest(event)">
+                <div class="form-group">
+                    <label class="form-label" for="forgot-email">Account Email</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">✉</span>
+                        <input type="email" id="forgot-email" class="form-input" required placeholder="you@example.com" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="forgot-new-password">New Password</label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input type="password" id="forgot-new-password" class="form-input" required placeholder="Min 8 characters (A-Z, a-z, 0-9, symbol)" minlength="8" maxlength="64" oninput="checkStrength('forgot-new-password', 'forgot-strength-fill', 'forgot-strength-label')" />
+                    </div>
+                    <div class="strength-bar-container visible" style="display:block;">
+                        <div class="strength-track"><div class="strength-fill" id="forgot-strength-fill"></div></div>
+                        <div class="strength-info">
+                            <span>Strength</span>
+                            <span class="strength-label" id="forgot-strength-label"></span>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit" id="forgot-submit-btn">
+                    <span class="btn-text">Send Password Reset Code</span><span class="spinner"></span>
+                </button>
+            </form>
+            <button class="btn-link" onclick="showView('view-auth'); switchTab('login')">← Back to Sign In</button>
+            <div class="auth-message" id="forgot-message"></div>
+        </div>
+
+        <!-- ═══ 5. FORGOTTEN PASSWORD: STEP 2 (OTP VERIFICATION) ═══ -->
+        <div class="view" id="view-forgot-otp">
+            <div class="auth-header">
+                <h1>Confirm Reset Code</h1>
+                <p>Enter the 6-digit verification code sent to <strong id="forgot-otp-email-display" style="color:#fff"></strong></p>
+            </div>
+            <div class="otp-group" id="forgot-otp-group">
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" />
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" />
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" />
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" />
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" />
+                <input type="text" class="otp-input" maxlength="1" inputmode="numeric" />
+            </div>
+            <button class="btn-submit" id="forgot-otp-submit-btn" onclick="verifyPasswordResetOtp()">
+                <span class="btn-text">Confirm & Change Password</span><span class="spinner"></span>
+            </button>
+            <button class="btn-link" onclick="showView('view-forgot-password')">← Back to Reset Form</button>
+            <div class="auth-message" id="forgot-otp-message"></div>
+        </div>
+
     </div>
 </div>
 
 <script>
 let isLogin = true;
 let pendingEmail = '';
+let pendingRestoreToken = '';
+let pendingRestoreDeletesAt = '';
+let pendingForgotEmail = '';
 
 // Auto-check if already logged in (cookies are sent automatically)
 (async () => {
@@ -277,7 +385,8 @@ let pendingEmail = '';
 
 function showView(id) {
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
+    const target = document.getElementById(id);
+    if (target) target.classList.add('active');
 }
 
 function switchTab(tab) {
@@ -289,16 +398,17 @@ function switchTab(tab) {
     document.getElementById('auth-subtitle').textContent = isLogin ? 'Sign in to your account to continue' : 'Sign up to start managing your projects';
     document.querySelector('#submit-btn .btn-text').textContent = isLogin ? 'Sign In' : 'Send Verification Code';
     document.getElementById('strength-container').classList.toggle('visible', !isLogin);
+    document.getElementById('forgot-password-link').style.display = isLogin ? 'inline' : 'none';
     document.getElementById('password').autocomplete = isLogin ? 'current-password' : 'new-password';
     clearMessage('auth-message');
-    if (!isLogin) checkStrength();
+    if (!isLogin) checkStrength('password', 'strength-fill', 'strength-label');
 }
 
-function checkStrength() {
-    if (isLogin) return;
-    const pw = document.getElementById('password').value;
-    const fill = document.getElementById('strength-fill');
-    const label = document.getElementById('strength-label');
+function checkStrength(inputId, fillId, labelId) {
+    const pw = document.getElementById(inputId).value;
+    const fill = document.getElementById(fillId);
+    const label = document.getElementById(labelId);
+    if (!fill || !label) return;
     let score = 0;
     if (pw.length >= 8) score++;
     if (pw.length >= 12) score++;
@@ -334,12 +444,27 @@ async function handleAuth(e) {
                 body: formData,
                 credentials: 'include'
             });
-            if (res.ok) {
+
+            if (res.status === 204) {
                 showMessage('auth-message', '✓ Login successful! Redirecting…', 'success');
-                setTimeout(() => window.location.href = '/app', 700);
+                setTimeout(() => window.location.href = '/app', 600);
+            } else if (res.status === 200) {
+                // Pending restore detection
+                const data = await res.json().catch(() => ({}));
+                if (data.status === 'pending_restore') {
+                    pendingRestoreToken = data.restore_token;
+                    pendingRestoreDeletesAt = data.deletes_at;
+                    const dateFormatted = data.deletes_at ? new Date(data.deletes_at).toLocaleString() : 'in 14 days';
+                    document.getElementById('restore-date-display').textContent = dateFormatted;
+                    showView('view-restore');
+                    return;
+                }
+                window.location.href = '/app';
             } else {
                 const err = await res.json().catch(() => ({}));
-                throw new Error(err.detail || 'Login failed');
+                let detail = err.detail || 'Login failed';
+                if (Array.isArray(err.detail)) detail = err.detail.map(d => d.msg || JSON.stringify(d)).join(', ');
+                throw new Error(detail);
             }
         } else {
             // Register → sends OTP to email
@@ -353,10 +478,10 @@ async function handleAuth(e) {
                 pendingEmail = email;
                 document.getElementById('otp-email-display').textContent = email;
                 showView('view-otp');
-                setupOtpInputs();
+                setupOtpInputs('reg-otp-group');
             } else {
                 const err = await res.json().catch(() => ({}));
-                const msg = Array.isArray(err.detail) ? err.detail[0].msg : err.detail;
+                const msg = Array.isArray(err.detail) ? err.detail.map(d => d.msg).join(', ') : err.detail;
                 throw new Error(msg || 'Registration failed');
             }
         }
@@ -367,30 +492,33 @@ async function handleAuth(e) {
     }
 }
 
-// OTP input auto-focus
-function setupOtpInputs() {
-    const inputs = document.querySelectorAll('.otp-input');
+// ══ OTP Inputs Auto-focus & Paste Setup ══
+function setupOtpInputs(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const inputs = container.querySelectorAll('.otp-input');
     inputs.forEach((inp, i) => {
         inp.value = '';
-        inp.addEventListener('input', () => {
+        inp.oninput = () => {
             inp.value = inp.value.replace(/\D/g, '');
             if (inp.value && i < inputs.length - 1) inputs[i + 1].focus();
-        });
-        inp.addEventListener('keydown', (e) => {
+        };
+        inp.onkeydown = (e) => {
             if (e.key === 'Backspace' && !inp.value && i > 0) inputs[i - 1].focus();
-        });
-        inp.addEventListener('paste', (e) => {
+        };
+        inp.onpaste = (e) => {
             e.preventDefault();
             const text = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
             text.split('').forEach((ch, j) => { if (inputs[j]) inputs[j].value = ch; });
             if (text.length > 0) inputs[Math.min(text.length, inputs.length) - 1].focus();
-        });
+        };
     });
-    inputs[0].focus();
+    setTimeout(() => { if (inputs[0]) inputs[0].focus(); }, 50);
 }
 
+// Verify Registration OTP
 async function verifyOtp() {
-    const inputs = document.querySelectorAll('.otp-input');
+    const inputs = document.querySelectorAll('#reg-otp-group .otp-input');
     const otp = Array.from(inputs).map(i => i.value).join('');
     if (otp.length !== 6) return showMessage('otp-message', 'Please enter the full 6-digit code', 'error');
     const btn = document.getElementById('otp-submit-btn');
@@ -405,8 +533,8 @@ async function verifyOtp() {
             credentials: 'include'
         });
         if (res.ok) {
-            showMessage('otp-message', '✓ Account created! Redirecting to login…', 'success');
-            setTimeout(() => { showView('view-auth'); switchTab('login'); }, 1500);
+            showMessage('otp-message', '✓ Account verified! Redirecting to Sign In…', 'success');
+            setTimeout(() => { showView('view-auth'); switchTab('login'); }, 1400);
         } else {
             const err = await res.json().catch(() => ({}));
             throw new Error(err.detail || 'Verification failed');
@@ -418,12 +546,126 @@ async function verifyOtp() {
     }
 }
 
+// ══ Account Restoration ══
+async function submitAccountRestore() {
+    if (!pendingRestoreToken) return;
+    const btn = document.getElementById('restore-submit-btn');
+    clearMessage('restore-message');
+    btn.classList.add('loading'); btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/v1/auth/restore-account', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ restore_token: pendingRestoreToken }),
+            credentials: 'include'
+        });
+        if (res.ok) {
+            showMessage('restore-message', '✓ Account successfully restored! Please sign in.', 'success');
+            setTimeout(() => {
+                showView('view-auth');
+                switchTab('login');
+            }, 1500);
+        } else {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || 'Failed to restore account');
+        }
+    } catch(e) {
+        showMessage('restore-message', e.message, 'error');
+    } finally {
+        btn.classList.remove('loading'); btn.disabled = false;
+    }
+}
+
+function cancelRestore() {
+    pendingRestoreToken = '';
+    showView('view-auth');
+    switchTab('login');
+}
+
+// ══ Forgotten Password Reset ══
+function openForgotPassword() {
+    showView('view-forgot-password');
+    clearMessage('forgot-message');
+    document.getElementById('forgot-email').value = document.getElementById('email').value || '';
+    document.getElementById('forgot-new-password').value = '';
+    checkStrength('forgot-new-password', 'forgot-strength-fill', 'forgot-strength-label');
+}
+
+async function handleForgotPasswordRequest(e) {
+    e.preventDefault();
+    const email = document.getElementById('forgot-email').value.trim();
+    const password = document.getElementById('forgot-new-password').value;
+    const btn = document.getElementById('forgot-submit-btn');
+    clearMessage('forgot-message');
+    btn.classList.add('loading'); btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/v1/auth/forgotten-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+            credentials: 'include'
+        });
+        if (res.ok) {
+            pendingForgotEmail = email;
+            document.getElementById('forgot-otp-email-display').textContent = email;
+            showView('view-forgot-otp');
+            setupOtpInputs('forgot-otp-group');
+        } else {
+            const err = await res.json().catch(() => ({}));
+            const msg = Array.isArray(err.detail) ? err.detail.map(d => d.msg).join(', ') : err.detail;
+            throw new Error(msg || 'Failed to request password reset');
+        }
+    } catch(err) {
+        showMessage('forgot-message', err.message, 'error');
+    } finally {
+        btn.classList.remove('loading'); btn.disabled = false;
+    }
+}
+
+async function verifyPasswordResetOtp() {
+    const inputs = document.querySelectorAll('#forgot-otp-group .otp-input');
+    const otp = Array.from(inputs).map(i => i.value).join('');
+    if (otp.length !== 6) return showMessage('forgot-otp-message', 'Please enter the full 6-digit code', 'error');
+    const btn = document.getElementById('forgot-otp-submit-btn');
+    clearMessage('forgot-otp-message');
+    btn.classList.add('loading'); btn.disabled = true;
+
+    try {
+        const res = await fetch('/api/v1/auth/verify-password-change', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: pendingForgotEmail, otp: parseInt(otp) }),
+            credentials: 'include'
+        });
+        if (res.ok) {
+            showMessage('forgot-otp-message', '✓ Password updated successfully! Redirecting…', 'success');
+            setTimeout(() => {
+                showView('view-auth');
+                switchTab('login');
+                showMessage('auth-message', 'Password changed! Please log in with your new password.', 'success');
+            }, 1400);
+        } else {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || 'Password reset failed');
+        }
+    } catch(err) {
+        showMessage('forgot-otp-message', err.message, 'error');
+    } finally {
+        btn.classList.remove('loading'); btn.disabled = false;
+    }
+}
+
+// ══ Helpers ══
 function showMessage(id, text, type) {
     const el = document.getElementById(id);
+    if (!el) return;
     el.textContent = text; el.className = `auth-message show ${type}`;
 }
 function clearMessage(id) {
     const el = document.getElementById(id);
+    if (!el) return;
     el.textContent = ''; el.className = 'auth-message';
 }
 </script>

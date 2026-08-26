@@ -1,0 +1,67 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title}</title>
+</head>
+<body style="margin:0;padding:0;background:#050a18;font-family:'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#050a18;padding:48px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+
+          <!-- Header -->
+          <tr>
+            <td align="center" style="padding-bottom:32px;">
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:16px;width:56px;height:56px;text-align:center;line-height:56px;font-size:26px;">&#9889;</td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-top:14px;">
+                    <span style="font-size:22px;font-weight:800;color:#f1f5f9;letter-spacing:-0.5px;">Task<span style="color:#6366f1;">Flow</span></span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Card -->
+          <tr>
+            <td style="background:rgba(15,23,42,0.9);border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:40px 36px;">
+              <p style="margin:0 0 6px;font-size:22px;font-weight:700;color:#f1f5f9;">{title}</p>
+              <p style="margin:0 0 32px;font-size:14px;color:#64748b;line-height:1.6;">{subtitle}</p>
+
+              <!-- OTP block -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:14px;padding:24px 16px;">
+                    <p style="margin:0 0 8px;font-size:11px;font-weight:600;color:#64748b;letter-spacing:0.1em;text-transform:uppercase;">Your one-time code</p>
+                    <p style="margin:0;font-size:40px;font-weight:800;color:#f1f5f9;letter-spacing:10px;font-variant-numeric:tabular-nums;">{otp_code}</p>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:20px 0 0;font-size:12px;color:#475569;text-align:center;">
+                &#8987; This code expires in <strong style="color:#94a3b8;">{expire_minutes} minutes</strong>. Do not share it with anyone.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 0 0;text-align:center;">
+              <p style="margin:0;font-size:11px;color:#334155;line-height:1.8;">
+                If you didn't request this, you can safely ignore this email.<br/>
+                &copy; 2025 TaskFlow. All rights reserved.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

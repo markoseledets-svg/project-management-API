@@ -70,13 +70,16 @@ async def test_user():
     return await UserFactory.create_async()
 
 @pytest.fixture
-async def test_access_token(test_user):
-    return generate_access_jwt(test_user.public_id)
+async def test_refresh_record(test_user):
+    return await RefreshFactory.create_async(user_public_id = test_user.public_id)
 
 @pytest.fixture
-async def test_refresh_token(test_user):
-    refresh_record = await RefreshFactory.create_async(user_public_id = test_user.public_id)
-    return generate_refresh_jwt(test_user.public_id, refresh_record.token_public_id)
+async def test_access_token(test_user, test_refresh_record):
+    return generate_access_jwt(test_user.public_id, test_refresh_record.family_id)
+
+@pytest.fixture
+async def test_refresh_token(test_user, test_refresh_record):
+    return generate_refresh_jwt(test_user.public_id, test_refresh_record.token_public_id)
 
 @pytest.fixture
 async def auth_cookies(test_access_token, test_refresh_token):
@@ -119,8 +122,8 @@ async def test_project_user(test_user):
 
 @pytest.fixture
 async def project_user_cookies(test_project_user):
-    access_token = generate_access_jwt(test_project_user.public_id)
     refresh_record = await RefreshFactory.create_async(user_public_id = test_project_user.public_id)
+    access_token = generate_access_jwt(test_project_user.public_id, refresh_record.family_id)
     refresh_token = generate_refresh_jwt(
         test_project_user.public_id,
         refresh_record.token_public_id

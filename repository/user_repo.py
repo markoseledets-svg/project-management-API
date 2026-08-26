@@ -1,10 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy import select, update
 import uuid6
+from datetime import datetime, timezone
 
 from database.db_model import UserModel, RefreshTokenModel
 from repository.base_repo import BaseRepository
+from schemas.login_schemas import RawSessionDataModel
 
 class UserRepository(BaseRepository[UserModel]):
     def __init__(self, session: AsyncSession):
@@ -62,4 +64,33 @@ class RefreshRepository(BaseRepository[RefreshTokenModel]):
             .where(RefreshTokenModel.family_id == family_id)
             .values(is_used=True)
         )
- 
+    async def get_active_tokens_family(self, user_public_id: uuid6.UUID) -> List[uuid6.UUID]:
+        family_ids = await self.session.execute(
+            select(RefreshTokenModel.family_id)
+            .where(
+                RefreshTokenModel.user_public_id == user_public_id,
+                RefreshTokenModel.is_used == False
+                )   
+        )
+        return family_ids.scalars().all()
+
+    async def invalidate_user_tokens(self, user_public_id: uuid6.UUID) -> None:
+        await self.session.execute(
+            update(RefreshTokenModel)
+            .where(RefreshTokenModel.is_used == False, RefreshTokenModel.user_public_id == user_public_id)
+            .values(is_used=True)
+        )
+
+    async def get_user_active_sessions(self, user_public_id: uuid6.UUID) -> List[RawSessionDataModel]:
+        sessions_data_obj = await self.session.execute(select(
+                RefreshTokenModel.token_public_id,
+                RefreshTokenModel.session_started_at, 
+                RefreshTokenModel.user_agent
+                )
+            .where(
+                RefreshTokenModel.user_public_id == user_public_id, 
+                RefreshTokenModel.is_used == False,
+                RefreshTokenModel.expired_at > datetime.now(timezone.utc)
+                )
+            )
+        return sessions_data_obj.mappings().all()

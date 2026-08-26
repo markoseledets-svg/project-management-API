@@ -12,6 +12,7 @@ load_dotenv()
 
 ACCESS_SECRET_KEY = os.getenv("ACCESS_SECRET_KEY")
 REFRESH_SECRET_KEY = os.getenv("REFRESH_SECRET_KEY")
+RESTORE_SECRET_KEY = os.getenv("RESTORE_SECRET_KEY")
 HASHING_ALGO  = os.getenv("ALGORITHM")
 IS_PRODUCTION = os.getenv("ENV") == "production"
 
@@ -33,9 +34,13 @@ def generate_jwt(
     return jwt.encode(token_payload_data, secret_key, HASHING_ALGO)
 
 
-def generate_access_jwt(user_public_id:uuid6.UUID) -> str:
+def generate_access_jwt(
+    user_public_id:uuid6.UUID, 
+    token_family_id: uuid6.UUID
+    ) -> str:
     payload = {
-    "sub": str(user_public_id), 
+    "sub": str(user_public_id),
+    "sid": str(token_family_id),
     "exp": datetime.now(timezone.utc) + timedelta(minutes=15)
     }
     return generate_jwt(payload, ACCESS_SECRET_KEY)
@@ -52,6 +57,13 @@ def generate_refresh_jwt(
     }
     return generate_jwt(payload, REFRESH_SECRET_KEY)
 
+def generate_restore_jwt(user_public_id: uuid6.UUID) -> str:
+    payload = {
+        "sub": str(user_public_id),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=10)
+    }
+    return generate_jwt(payload, RESTORE_SECRET_KEY)
+
 def generate_refresh_token_data(user_public_id, useragent: str, family_id=None):
     created_at = datetime.now(timezone.utc)
     expires_at = datetime.now(timezone.utc) + timedelta(days=14)
@@ -63,6 +75,7 @@ def generate_refresh_token_data(user_public_id, useragent: str, family_id=None):
             "created_at": created_at,
             "expired_at": expires_at,
             "family_id": token_family_id,
+            'session_started_at': created_at,
             "user_agent": useragent,
             "is_used": False
             }
@@ -79,11 +92,13 @@ def decode_access_token(token: str) -> uuid6.UUID:
     payload = decode_jwt(token, ACCESS_SECRET_KEY)
     user_public_id = payload.get("sub")
     token_exp = payload.get("exp")
-    if not user_public_id:
+    token_family_id = payload.get("sid")
+    if not user_public_id or not token_family_id:
         raise AuthFailedError()
     return {
-        "user_public_id":uuid6.UUID(user_public_id), 
-        "token_exparation":token_exp
+        "user_public_id": uuid6.UUID(user_public_id),
+        "token_family_id": uuid6.UUID(token_family_id),
+        "token_expiration": token_exp
     }
 
 def decode_refresh_token(token: str) -> dict:
@@ -97,41 +112,49 @@ def decode_refresh_token(token: str) -> dict:
         "token_public_id": uuid6.UUID(token_public_id)
     }
 
+def decode_restore_token(token:str) -> str:
+    payload = decode_jwt(token, RESTORE_SECRET_KEY)
+    user_public_id = payload.get("sub")
+    if not user_public_id:
+        raise AuthFailedError()
+    return user_public_id
+
 # Cookies set/delete for tokens
+
+def set_cookies(
+                response: Response,
+                cookie_key: str,
+                cookies_values: str,
+                cookie_ttl: int
+                ):
+    response.set_cookie(
+        key=cookie_key,
+        value=cookies_values,
+        httponly=True,
+        secure=IS_PRODUCTION,
+        samesite="lax",
+        max_age=cookie_ttl
+    )
+
+def delete_cookies(
+                    response: Response,
+                    cookie_key: str,
+                    ):
+    response.delete_cookie(
+        key=cookie_key,
+        httponly=True,
+        secure=IS_PRODUCTION,
+        samesite="lax"
+        )
 
 def set_tokens_to_cookies(
                             response: Response, 
                             access_token: str, 
                             refresh_token: str
                          ) -> None:
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        secure=IS_PRODUCTION,
-        samesite="lax",
-        max_age=900
-    )
-
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=IS_PRODUCTION,
-        samesite="lax",
-        max_age=1209600
-    )
-
+    set_cookies(response, 'access_token', access_token, 900)
+    set_cookies(response, 'refresh_token', refresh_token, 1209600)
+    
 def delete_tokens_from_cookies(response: Response) -> None:
-    response.delete_cookie(
-        key="access_token",
-        httponly=True,
-        secure=IS_PRODUCTION,
-        samesite="lax"
-        )
-    response.delete_cookie(
-        key="refresh_token",
-        httponly=True,
-        secure=IS_PRODUCTION,
-        samesite="lax"
-        )
+    delete_cookies(response, 'access_token')
+    delete_cookies(response, 'refresh_token')

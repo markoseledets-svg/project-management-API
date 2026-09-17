@@ -325,6 +325,52 @@
         .danger-zone-title { font-size: 0.75rem; font-weight: 700; color: var(--danger); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
         .danger-zone-desc { font-size: 0.78rem; color: var(--text-soft); line-height: 1.4; margin-bottom: 0.75rem; }
 
+        /* Provider link buttons */
+        .provider-section { margin-bottom: 1.25rem; }
+        .provider-section-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 0.5rem; padding: 0 0.25rem; }
+        .provider-buttons { display: flex; flex-direction: column; gap: 0.5rem; }
+        .btn-provider {
+            width: 100%; padding: 0.7rem 1rem; border-radius: 12px;
+            border: 1px solid var(--border); background: var(--surface-2);
+            color: var(--text-soft); font-size: 0.85rem; font-weight: 600;
+            font-family: inherit; cursor: pointer;
+            display: flex; align-items: center; gap: 0.65rem;
+            transition: all 0.25s;
+        }
+        .btn-provider:hover:not(:disabled) { background: var(--surface-3); border-color: var(--border-hover); color: var(--text); transform: translateY(-1px); }
+        .btn-provider:disabled { opacity: 0.5; cursor: default; }
+        .btn-provider svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .btn-provider .provider-status { margin-left: auto; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 20px; }
+        .provider-linked { background: rgba(16,185,129,0.08); color: var(--success); border: 1px solid rgba(16,185,129,0.25); }
+        .provider-available { background: var(--primary-glow); color: var(--primary); border: 1px solid rgba(99,102,241,0.3); }
+        .provider-row {
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.6rem 0.75rem; border-radius: 12px;
+            background: var(--surface-2); border: 1px solid var(--border);
+        }
+        .provider-row svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .provider-row-name { font-size: 0.85rem; font-weight: 600; color: var(--text-soft); }
+        .provider-row-actions { margin-left: auto; display: flex; align-items: center; gap: 0.5rem; }
+        .btn-unlink {
+            padding: 0.3rem 0.65rem; border-radius: 8px;
+            background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
+            color: var(--danger); font-size: 0.72rem; font-weight: 700;
+            font-family: inherit; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-unlink:hover { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.4); }
+        .btn-unlink:disabled { opacity: 0.35; cursor: default; }
+
+        /* OTP inline in modal */
+        .modal-otp-group { display: flex; gap: 0.4rem; justify-content: center; margin: 1rem 0; }
+        .modal-otp-input {
+            width: 44px; height: 52px; text-align: center;
+            font-size: 1.3rem; font-weight: 700; font-family: inherit;
+            background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+            border-radius: 10px; color: var(--text); outline: none;
+            transition: all 0.25s;
+        }
+        .modal-otp-input:focus { border-color: rgba(99,102,241,0.5); box-shadow: 0 0 0 3px var(--primary-glow); }
+
         /* Session Cards */
         .sessions-container { max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.625rem; padding-right: 4px; margin-bottom: 1.25rem; }
         .sessions-container::-webkit-scrollbar { width: 4px; }
@@ -447,43 +493,8 @@
             </div>
         </div>
 
-        <div class="profile-menu-list">
-            <!-- Change Password -->
-            <div class="profile-menu-item" onclick="openChangePasswordModal()">
-                <div class="pmi-left">
-                    <div class="pmi-icon">🔑</div>
-                    <div>
-                        <div class="pmi-text-title">Change Password</div>
-                        <div class="pmi-text-desc">Update your security password</div>
-                    </div>
-                </div>
-                <span>→</span>
-            </div>
-
-            <!-- Active Sessions Control -->
-            <div class="profile-menu-item" onclick="openSessionsModal()">
-                <div class="pmi-left">
-                    <div class="pmi-icon">💻</div>
-                    <div>
-                        <div class="pmi-text-title">Active Sessions & Devices</div>
-                        <div class="pmi-text-desc">Inspect and terminate active logins</div>
-                    </div>
-                </div>
-                <span class="pmi-badge" id="profile-sessions-count">Sessions</span>
-            </div>
-
-            <!-- Logout Current Session -->
-            <div class="profile-menu-item" onclick="doLogout()">
-                <div class="pmi-left">
-                    <div class="pmi-icon">🚪</div>
-                    <div>
-                        <div class="pmi-text-title">Logout Current Device</div>
-                        <div class="pmi-text-desc">Sign out from this browser</div>
-                    </div>
-                </div>
-                <span style="color:var(--text-muted)">⏻</span>
-            </div>
-        </div>
+        <!-- Dynamic profile menu (rendered by JS based on providers) -->
+        <div id="profile-menu-dynamic"></div>
 
         <!-- Danger Zone: Delete Account -->
         <div class="danger-zone">
@@ -574,6 +585,55 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="openProfileModal()">Cancel</button>
             <button class="btn btn-danger" onclick="submitDeleteAccount()" id="delete-acc-btn">Yes, Delete My Account</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ 4b. ADD PASSWORD MODAL ══ -->
+<div class="overlay" id="add-password-modal">
+    <div class="modal" style="max-width: 440px;">
+        <div class="modal-title">
+            <span>🔐 Add Password</span>
+            <button class="icon-btn" onclick="openProfileModal()">←</button>
+        </div>
+        <p style="font-size:0.82rem;color:var(--text-soft);margin-bottom:1rem;line-height:1.5;">Your account was created with an OAuth provider. Add a password to also sign in with email &amp; password.</p>
+        <div id="add-pwd-step-1">
+            <form onsubmit="submitAddPassword(event)">
+                <div class="form-group">
+                    <label>New Password *</label>
+                    <input type="password" class="form-control" id="add-pwd-input" required placeholder="Min 8 chars, uppercase, number & symbol" minlength="8" maxlength="64" autocomplete="new-password" oninput="checkStrength('add-pwd-input', 'add-pwd-strength-fill', 'add-pwd-strength-label')" />
+                    <div style="margin-top:0.4rem;">
+                        <div class="strength-track" style="width:100%;height:4px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;"><div class="strength-fill" id="add-pwd-strength-fill" style="height:100%;width:0%;border-radius:4px;transition:all 0.3s ease;"></div></div>
+                        <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted);margin-top:0.25rem;">
+                            <span>Requirements: min 8 chars (A-Z, a-z, 0-9, symbol)</span>
+                            <span id="add-pwd-strength-label" style="font-weight:600;"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password *</label>
+                    <input type="password" class="form-control" id="add-pwd-confirm" required placeholder="Confirm new password" minlength="8" maxlength="64" autocomplete="new-password" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" onclick="openProfileModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="add-pwd-submit-btn">Send Verification Code</button>
+                </div>
+            </form>
+        </div>
+        <div id="add-pwd-step-2" style="display:none;">
+            <p style="font-size:0.85rem;color:var(--text-soft);margin-bottom:0.5rem;">Enter the 6-digit code sent to your email:</p>
+            <div class="modal-otp-group" id="add-pwd-otp-group">
+                <input type="text" class="modal-otp-input" maxlength="1" inputmode="numeric" />
+                <input type="text" class="modal-otp-input" maxlength="1" inputmode="numeric" />
+                <input type="text" class="modal-otp-input" maxlength="1" inputmode="numeric" />
+                <input type="text" class="modal-otp-input" maxlength="1" inputmode="numeric" />
+                <input type="text" class="modal-otp-input" maxlength="1" inputmode="numeric" />
+                <input type="text" class="modal-otp-input" maxlength="1" inputmode="numeric" />
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="addPwdBackToStep1()">← Back</button>
+                <button class="btn btn-primary" id="add-pwd-otp-submit" onclick="verifyAddPasswordOtp()">Verify & Add Password</button>
+            </div>
         </div>
     </div>
 </div>
@@ -754,9 +814,25 @@ let userInvitations = [];
 let projectInvitations = [];
 let taskFilter = 'all';
 let activeTab = 'tasks'; // 'tasks' | 'members' | 'invitations'
+let userProviders = []; // ['local', 'google', 'github']
+
+// ══ Cookie helpers ══
+function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+}
+function deleteCookie(name) {
+    document.cookie = name + '=; Max-Age=0; path=/;';
+}
 
 // ══ BOOT ══
 async function boot() {
+    // Check for OAuth error cookie (from link callback redirect)
+    const oauthError = getCookie('oauth_error');
+    if (oauthError) {
+        deleteCookie('oauth_error');
+        setTimeout(() => toast(oauthError, 'error'), 500);
+    }
     try {
         currentUser = await apiGet(`${API}/auth/me`);
         renderUser(currentUser);
@@ -823,11 +899,231 @@ async function openProfileModal() {
     closeModals();
     if (currentUser) renderUser(currentUser);
     openModal('profile-modal');
-    // Pre-fetch sessions count
+    // Load providers + sessions count in parallel
     try {
-        const sess = await apiGet(`${API}/auth/active-sessions`) || [];
-        document.getElementById('profile-sessions-count').textContent = `${sess.length} Active`;
+        const [providers, sess] = await Promise.all([
+            apiGet(`${API}/auth/providers`).catch(() => []),
+            apiGet(`${API}/auth/active-sessions`).catch(() => [])
+        ]);
+        userProviders = providers || [];
+        renderProfileMenu(userProviders, sess || []);
     } catch {}
+}
+
+function findProvider(providers, name) {
+    return providers.find(p => p.provider === name);
+}
+
+function renderProfileMenu(providers, sessions) {
+    const container = document.getElementById('profile-menu-dynamic');
+    if (!container) return;
+    const localProv = findProvider(providers, 'local');
+    const googleProv = findProvider(providers, 'google');
+    const githubProv = findProvider(providers, 'github');
+    const hasLocal = !!localProv;
+    const hasGoogle = !!googleProv;
+    const hasGithub = !!githubProv;
+    const canUnlink = providers.length > 1;
+    const sessCount = sessions.length;
+
+    let html = '';
+
+    // OAuth Provider Linking section
+    html += `<div class="provider-section">
+        <div class="provider-section-title">Connected Accounts</div>
+        <div class="provider-buttons">`;
+
+    // Google
+    if (hasGoogle) {
+        html += `<div class="provider-row">
+            <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            <span class="provider-row-name">Google</span>
+            <div class="provider-row-actions">
+                <span class="provider-status provider-linked">✓ Linked</span>
+                <button class="btn-unlink" ${!canUnlink ? 'disabled title="Cannot unlink the only provider"' : ''} onclick="unlinkProvider('${googleProv.identity_public_id}', 'Google')">Unlink</button>
+            </div>
+        </div>`;
+    } else {
+        html += `<button class="btn-provider" onclick="linkOAuthProvider('google')">
+            <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Google
+            <span class="provider-status provider-available">Link</span>
+        </button>`;
+    }
+
+    // GitHub
+    if (hasGithub) {
+        html += `<div class="provider-row">
+            <svg viewBox="0 0 24 24"><path fill="#fff" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+            <span class="provider-row-name">GitHub</span>
+            <div class="provider-row-actions">
+                <span class="provider-status provider-linked">✓ Linked</span>
+                <button class="btn-unlink" ${!canUnlink ? 'disabled title="Cannot unlink the only provider"' : ''} onclick="unlinkProvider('${githubProv.identity_public_id}', 'GitHub')">Unlink</button>
+            </div>
+        </div>`;
+    } else {
+        html += `<button class="btn-provider" onclick="linkOAuthProvider('github')">
+            <svg viewBox="0 0 24 24"><path fill="#fff" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+            GitHub
+            <span class="provider-status provider-available">Link</span>
+        </button>`;
+    }
+
+    html += `</div>
+    </div>`;
+
+    // Profile menu items
+    html += `<div class="profile-menu-list">`;
+
+    // Change Password (only if local provider exists)
+    if (hasLocal) {
+        html += `<div class="profile-menu-item" onclick="openChangePasswordModal()">
+            <div class="pmi-left">
+                <div class="pmi-icon">🔑</div>
+                <div>
+                    <div class="pmi-text-title">Change Password</div>
+                    <div class="pmi-text-desc">Update your security password</div>
+                </div>
+            </div>
+            <span>→</span>
+        </div>`;
+    }
+
+    // Add Password (only if NO local provider but has identity)
+    if (!hasLocal) {
+        html += `<div class="profile-menu-item" onclick="openAddPasswordModal()">
+            <div class="pmi-left">
+                <div class="pmi-icon">🔐</div>
+                <div>
+                    <div class="pmi-text-title">Add Password</div>
+                    <div class="pmi-text-desc">Enable email & password sign-in</div>
+                </div>
+            </div>
+            <span>→</span>
+        </div>`;
+    }
+
+    // Active Sessions
+    html += `<div class="profile-menu-item" onclick="openSessionsModal()">
+        <div class="pmi-left">
+            <div class="pmi-icon">💻</div>
+            <div>
+                <div class="pmi-text-title">Active Sessions & Devices</div>
+                <div class="pmi-text-desc">Inspect and terminate active logins</div>
+            </div>
+        </div>
+        <span class="pmi-badge" id="profile-sessions-count">${sessCount} Active</span>
+    </div>`;
+
+    // Logout
+    html += `<div class="profile-menu-item" onclick="doLogout()">
+        <div class="pmi-left">
+            <div class="pmi-icon">🚪</div>
+            <div>
+                <div class="pmi-text-title">Logout Current Device</div>
+                <div class="pmi-text-desc">Sign out from this browser</div>
+            </div>
+        </div>
+        <span style="color:var(--text-muted)">⏻</span>
+    </div>`;
+
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+function linkOAuthProvider(provider) {
+    window.location.href = `${API}/auth/oauth/${provider}/link`;
+}
+
+async function unlinkProvider(identityPublicId, providerName) {
+    if (!confirm(`Are you sure you want to unlink ${providerName}? You will no longer be able to sign in with this provider.`)) return;
+    try {
+        await apiDel(`${API}/auth/unlink-provider/${identityPublicId}`);
+        toast(`${providerName} unlinked successfully`, 'success');
+        // Refresh profile modal with updated providers
+        await openProfileModal();
+    } catch(e) {
+        toast(e.message, 'error');
+    }
+}
+
+// ══ ADD PASSWORD WORKFLOW ══
+function openAddPasswordModal() {
+    closeModals();
+    document.getElementById('add-pwd-input').value = '';
+    document.getElementById('add-pwd-confirm').value = '';
+    checkStrength('add-pwd-input', 'add-pwd-strength-fill', 'add-pwd-strength-label');
+    document.getElementById('add-pwd-step-1').style.display = 'block';
+    document.getElementById('add-pwd-step-2').style.display = 'none';
+    openModal('add-password-modal');
+}
+
+async function submitAddPassword(e) {
+    e.preventDefault();
+    const password = document.getElementById('add-pwd-input').value;
+    const confirm = document.getElementById('add-pwd-confirm').value;
+    if (password !== confirm) return toast('Passwords do not match', 'error');
+    const btn = document.getElementById('add-pwd-submit-btn');
+    btn.disabled = true;
+    try {
+        await apiPost(`${API}/auth/add-password`, { password });
+        // Switch to OTP step
+        document.getElementById('add-pwd-step-1').style.display = 'none';
+        document.getElementById('add-pwd-step-2').style.display = 'block';
+        setupModalOtpInputs('add-pwd-otp-group');
+        toast('📧 Verification code sent to your email', 'success');
+    } catch(err) {
+        toast(err.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function addPwdBackToStep1() {
+    document.getElementById('add-pwd-step-1').style.display = 'block';
+    document.getElementById('add-pwd-step-2').style.display = 'none';
+}
+
+async function verifyAddPasswordOtp() {
+    const inputs = document.querySelectorAll('#add-pwd-otp-group .modal-otp-input');
+    const otp = Array.from(inputs).map(i => i.value).join('');
+    if (otp.length !== 6) return toast('Please enter the full 6-digit code', 'error');
+    const btn = document.getElementById('add-pwd-otp-submit');
+    btn.disabled = true;
+    try {
+        await apiPost(`${API}/auth/add-password/verify`, { otp: parseInt(otp) });
+        toast('🔐 Password added successfully!', 'success');
+        closeModals();
+        // Refresh providers
+        userProviders = await apiGet(`${API}/auth/providers`).catch(() => []) || [];
+    } catch(err) {
+        toast(err.message, 'error');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function setupModalOtpInputs(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const inputs = container.querySelectorAll('.modal-otp-input');
+    inputs.forEach((inp, i) => {
+        inp.value = '';
+        inp.oninput = () => {
+            inp.value = inp.value.replace(/\D/g, '');
+            if (inp.value && i < inputs.length - 1) inputs[i + 1].focus();
+        };
+        inp.onkeydown = (e) => {
+            if (e.key === 'Backspace' && !inp.value && i > 0) inputs[i - 1].focus();
+        };
+        inp.onpaste = (e) => {
+            e.preventDefault();
+            const text = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+            text.split('').forEach((ch, j) => { if (inputs[j]) inputs[j].value = ch; });
+            if (text.length > 0) inputs[Math.min(text.length, inputs.length) - 1].focus();
+        };
+    });
+    setTimeout(() => { if (inputs[0]) inputs[0].focus(); }, 50);
 }
 
 // ══ ACTIVE SESSIONS WORKFLOW (DEDICATED MODAL) ══

@@ -158,3 +158,18 @@ def set_tokens_to_cookies(
 def delete_tokens_from_cookies(response: Response) -> None:
     delete_cookies(response, 'access_token')
     delete_cookies(response, 'refresh_token')
+
+def set_restore_cookies(response: Response, restore_token: str, deletes_at: datetime) -> None:
+    set_cookies(response, 'restore_token', restore_token, 300)
+    response.set_cookie(
+        key='deletes_at',
+        value=str(deletes_at),
+        httponly=False,
+        secure=IS_PRODUCTION,
+        samesite="lax",
+        max_age=300
+    )
+
+def delete_restore_cookies(response: Response) -> None:
+    delete_cookies(response, 'restore_token')
+    delete_cookies(response, 'deletes_at')

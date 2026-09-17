@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import os
 from redis.exceptions import RedisError
+from starlette.middleware.sessions import SessionMiddleware
 
 from database.db_config import engine
 from app.api.v1 import router
@@ -35,6 +36,11 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv('SESSION_SECRET_KEY')
 )
 
 @app.exception_handler(SQLAlchemyError)

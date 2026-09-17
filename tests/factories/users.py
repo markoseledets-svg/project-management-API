@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from tests.factories.base import BaseFactory
-from database.db_model import UserModel, RefreshTokenModel
+from database.db_model import UserModel, RefreshTokenModel, AuthIdentityModel
 from core.security import hash_data
 
 RAW_PASSWORD = "Password123_"
@@ -24,3 +24,6 @@ class RefreshFactory(BaseFactory):
     @classmethod
     def expired_at(cls) -> datetime:
         return datetime.now(timezone.utc) + timedelta(days=14)
+
+class AuthIdentityFactory(BaseFactory):
+    __model__ = AuthIdentityModel

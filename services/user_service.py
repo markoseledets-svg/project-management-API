@@ -1,5 +1,7 @@
+from schemas.login_schemas import UserGetModel
 import uuid6
 import time
+from random import randint
 import redis.asyncio as redis
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
@@ -7,10 +9,21 @@ from typing import Optional, List
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import ValidationError
 from datetime import datetime, timedelta, timezone
+import json
+
 from services.redis_services import RedisServices
-from repository.user_repo import UserRepository,RefreshRepository
-from schemas.login_schemas import UserPostModel, UserWithOtp, UserRegisterModel, TokenResponseModel, SessionsGetModel, ChangePasswordModel
-from database.db_model import UserModel, RefreshTokenModel
+from repository.user_repo import UserRepository,RefreshRepository, AuthIdentityRepository
+from schemas.login_schemas import (
+    UserWithOtp, 
+    UserRegisterModel, 
+    TokenResponseModel, 
+    SessionsGetModel, 
+    ChangePasswordModel,
+    UserAuthModel,
+    IdentityLoginModel,
+    ProviderResponseModel
+    )
+from database.db_model import UserModel, RefreshTokenModel, AuthIdentityModel, RegistrationIdentity
 from core.security import (
     hash_data, 
     verify_hashes, 
@@ -28,7 +41,8 @@ from core.exceptions import (
     ConflictError, 
     AuthFailedError, 
     NotFoundError, 
-    DataValidationError
+    DataValidationError,
+    ForbiddenError
 )
 
 
@@ -41,7 +55,31 @@ class AuthServices:
         self.session = session
         self.user_repo = UserRepository(session)
         self.refresh_repo = RefreshRepository(session)
+        self.auth_identity_repo = AuthIdentityRepository(session)
         self.redis_client = RedisServices(client)
+
+    async def set_email_verification_data(
+        self,
+        redis_key: str,
+        values_dict: dict,
+        password: str
+        ) -> int:
+        hashed_password = hash_data(password)
+        values_dict['password']=hashed_password
+        otp=randint(100000, 999999)
+        values_dict['otp']=otp
+        await self.redis_client.add_user_otp(redis_key,values_dict)
+        return otp
+
+    async def get_email_verification_data(self, redis_key:str, otp:int) -> dict:
+        user_json_data = await self.redis_client.get_user_otp_data(
+            redis_key
+        )
+        user_data = json.loads(user_json_data)
+        if user_data['otp'] != otp:
+            raise AuthFailedError()
+        await self.redis_client.delete_otp_data(redis_key)
+        return user_data
 
     async def start_user_registration(
                                         self,
@@ -50,36 +88,63 @@ class AuthServices:
         user_exists = await self.user_repo.check_if_user_exists(user_data.email)
         if user_exists:
             raise ConflictError(detail="User with this email already exists!")
-        return await self.redis_client.add_user_otp(user_data)
+        return await self.set_email_verification_data(
+            f'register:{user_data.email}',
+            {'email':user_data.email},
+            user_data.password.get_secret_value()
+        )
 
-    async def verify_user_registration(self, email:str, otp: str) -> None:
-        user_json_data = await self.redis_client.get_user_registration_data(email)
-        user_data = UserWithOtp.model_validate_json(user_json_data)
-        if otp != user_data.otp:
-            raise AuthFailedError()
-        await self.redis_client.delete_otp_data(email)
-        public_user_id = uuid6.uuid7()
+    def _register_user(self, email:str) -> UserModel:
+        user_public_id = uuid6.uuid7()
         new_user = UserModel(
-            public_id = public_user_id,
-            email = email,
-            password = user_data.password.get_secret_value(),
+            public_id = user_public_id,
+            email=email
         )
         self.user_repo.add(new_user)
+        return new_user
+
+    def _add_identity(
+        self, 
+        user_public_id:uuid6.UUID, 
+        provider: RegistrationIdentity,
+        openid:str | None = None,
+        hashed_password: str | None = None
+        ) -> AuthIdentityModel:
+        identity_public_id = uuid6.uuid7()
+        new_identity = AuthIdentityModel(
+            identity_public_id=identity_public_id,
+            user_public_id=user_public_id,
+            provider=provider,
+            hashed_password=hashed_password,
+            provider_user_id=openid
+        )
+        self.auth_identity_repo.add(new_identity)
+        return new_identity
+
+    async def verify_user_registration(self, email:str, otp: str) -> None:
+        user_otp_data = await self.get_email_verification_data(f'register:{email}', otp)
+        user_data = UserWithOtp.model_validate(user_otp_data)
+        new_user = self._register_user(email)
+        self._add_identity(
+            user_public_id=new_user.public_id,
+            hashed_password=user_data.password.get_secret_value(),
+            provider=RegistrationIdentity.LOCAL
+        )
         try:    
             await self.session.commit()
-            logger.info(f"New user with public id:{public_user_id} was succesfully added to db!")
+            logger.info(f"New user with public id:{new_user.public_id} was succesfully added to db!")
         except IntegrityError:
             await self.session.rollback()
             raise ConflictError(detail="User with this email already exists!")
     
-    async def verify_user_login(self,data:UserPostModel) -> Optional[UserModel]:
-        user = await self.user_repo.get_user_by_email(data.email)
-        if not user:
+    async def verify_user_login(self,data:UserAuthModel) -> Optional[IdentityLoginModel]:
+        login_data = await self.auth_identity_repo.get_login_data_by_email(data.email)
+        if not login_data:
             raise AuthFailedError()
-        if not verify_hashes(data.password.get_secret_value(), user.password):
+        if not verify_hashes(data.password.get_secret_value(), login_data.hashed_password.get_secret_value()):
             logger.warning(f"Unsuccesfull attempt to login to email {data.email}!")
             raise AuthFailedError()
-        return user
+        return login_data
     
     async def get_user_by_public_id(self,user_public_id:uuid6.UUID) -> Optional[UserModel]:
         user = await self.user_repo.get_user_by_id(user_public_id)
@@ -100,33 +165,62 @@ class AuthServices:
         await self.session.refresh(new_refresh_token)
         return new_refresh_token
 
+    def _generate_auth_tokens(
+        self,
+        user_public_id:uuid6.UUID, 
+        token_family: uuid6.UUID, 
+        refresh_token_public_id: uuid6.UUID
+        ) -> TokenResponseModel:
+        access_token = generate_access_jwt(
+            user_public_id,
+            token_family
+        )
+        refresh_token = generate_refresh_jwt(
+            user_public_id,
+            refresh_token_public_id
+        )
+        return TokenResponseModel(
+            is_restore=False,
+            access_token=access_token,
+            refresh_token=refresh_token
+        )
+
+    async def _get_tokens_on_login(
+        self, 
+        user_agent:str,
+        user_public_id: uuid6.UUID,
+        deletes_at: datetime|None=None,
+        ) -> TokenResponseModel:
+        if deletes_at:
+            restore_token = generate_restore_jwt(user_public_id)
+            return TokenResponseModel(
+                is_restore=True,
+                restore_token=restore_token,
+                deletes_at=deletes_at
+            )
+        token_record = await self.add_token_record(user_public_id, user_agent)
+        return self._generate_auth_tokens(
+            user_public_id,
+            token_record.family_id,
+            token_record.token_public_id
+        )
+
     async def user_login_process(self, 
                                  user_agent:str, 
                                  form_data:OAuth2PasswordRequestForm
                                  ) -> TokenResponseModel:
             try:
-                user_data = UserPostModel(email=form_data.username, password=form_data.password)
+                user_data = UserAuthModel(email=form_data.username, password=form_data.password)
             except ValidationError:
                 raise DataValidationError()
-            user = await self.verify_user_login(user_data)
-            if user.deletes_at is None:
-                refresh_token_record = await self.add_token_record(user.public_id,user_agent)
-                access_token = generate_access_jwt(user.public_id, refresh_token_record.family_id)
-                refresh_token = generate_refresh_jwt(user.public_id, refresh_token_record.token_public_id)
-                return TokenResponseModel(
-                    is_restore=False,
-                    refresh_token=refresh_token,
-                    access_token=access_token
-                )
-            else:
-                restore_token = generate_restore_jwt(user.public_id)
-                return TokenResponseModel(
-                    is_restore=True,
-                    restore_token=restore_token,
-                    deletes_at=user.deletes_at
+            login_data = await self.verify_user_login(user_data)
+            return await self._get_tokens_on_login(
+                user_agent,
+                login_data.user_public_id,
+                login_data.deletes_at
                 )
 
-    async def rotate_refresh_token(self, user_refresh_token:str, user_agent:str) -> dict:
+    async def rotate_refresh_token(self, user_refresh_token:str, user_agent:str) -> TokenResponseModel:
         if not user_refresh_token:
             raise AuthFailedError()
         decoded_token = decode_refresh_token(user_refresh_token)
@@ -141,7 +235,7 @@ class AuthServices:
         if token_record.is_used == True:
             is_retry_token_data = await self.redis_client.check_refresh_for_retries(user_refresh_token)
             if is_retry_token_data:
-                return is_retry_token_data
+                return TokenResponseModel(**is_retry_token_data)
             await self.refresh_repo.invalidate_token_by_family(token_record.family_id)
             await self.session.commit()
             raise AuthFailedError()
@@ -155,14 +249,13 @@ class AuthServices:
                                                             user_agent, 
                                                             token_record.family_id
                                                          )
-        refresh_token = generate_refresh_jwt(user.public_id, refresh_token_record.token_public_id)
-        access_token = generate_access_jwt(user.public_id, refresh_token_record.family_id)
-        tokens_data = {
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                }
-        await self.redis_client.save_token_data_for_retries(user_refresh_token, tokens_data)
-        return tokens_data
+        tokens = self._generate_auth_tokens(
+                    user.public_id,
+                    refresh_token_record.family_id,
+                    refresh_token_record.token_public_id
+                )
+        await self.redis_client.save_token_data_for_retries(user_refresh_token, tokens)
+        return tokens
     
     async def get_user_credentials(self, token:str):
         is_banned = await self.redis_client.check_banned_tokens(token)
@@ -267,9 +360,12 @@ class AuthServices:
         user: UserModel,
         user_data: ChangePasswordModel
         ) -> None:
-        if not verify_hashes(user_data.old_password.get_secret_value(), user.password):
+        user_identity = await self.auth_identity_repo.get_identity_with_password(user.public_id)
+        if not user_identity:
+            raise AuthFailedError(detail="You can't change password, because your account was created with google.")
+        if not verify_hashes(user_data.old_password.get_secret_value(), user_identity.hashed_password):
             raise AuthFailedError()
-        user.password = hash_data(user_data.password.get_secret_value())
+        user_identity.hashed_password = hash_data(user_data.password.get_secret_value())
         family_ids = await self.refresh_repo.get_active_tokens_family(user.public_id)
         await self.refresh_repo.invalidate_user_tokens(user.public_id)
         for family_id in family_ids:
@@ -280,23 +376,149 @@ class AuthServices:
         self,
         user_data: UserRegisterModel
         ) -> int:
-        user_exists = await self.user_repo.check_if_user_exists(user_data.email)
-        if not user_exists:
+        providers = await self.auth_identity_repo.get_providers_by_email(user_data.email)
+        if not providers or RegistrationIdentity.LOCAL not in providers:
             raise AuthFailedError()
-        return await self.redis_client.add_user_otp(user_data)
+        return await self.set_email_verification_data(
+            f'password-change:{user_data.email}',
+            {'email':user_data.email},
+            user_data.password.get_secret_value()
+        )
 
     async def verify_pwd_change_with_otp(
         self,
         otp: int,
         email: str
         ) -> None:
-        user_json_data = await self.redis_client.get_user_registration_data(email)
-        user_data = UserWithOtp.model_validate_json(user_json_data)
-        if otp != user_data.otp:
+        user_otp_data = await self.get_email_verification_data(f'password-change:{email}', otp)
+        user_data = UserWithOtp.model_validate(user_otp_data)
+        updated = await self.auth_identity_repo.update_user_pwd_by_email(
+            email, 
+            user_data.password.get_secret_value()
+            )
+        if not updated:
             raise AuthFailedError()
-        await self.redis_client.delete_otp_data(email)
-        user = await self.user_repo.get_user_by_email(email)
-        if not user:
-            raise AuthFailedError()
-        user.password = user_data.password.get_secret_value()
+        await self.session.commit()
+
+    async def auth_with_provider(
+        self, 
+        email: str, 
+        provider_id:str, 
+        user_agent: str,
+        auth_provider: RegistrationIdentity
+        ) -> TokenResponseModel:
+        user_public_id = await self.auth_identity_repo.get_user_id_by_provider_id(
+            provider_id,
+            auth_provider
+        )
+        if user_public_id:
+            user = await self.user_repo.get_user_by_id(user_public_id)
+        else:
+            user = await self.user_repo.get_user_by_email(email)
+            if not user:
+                user = self._register_user(email)
+            self._add_identity(
+                    user_public_id=user.public_id, 
+                    openid=provider_id, 
+                    provider=auth_provider
+                    )
+        if user.deletes_at is not None:
+            await self.session.commit()
+        return await self._get_tokens_on_login(
+            user_agent,
+            user.public_id,
+            user.deletes_at
+        )
+    
+    async def link_provider(self, user:UserModel, provider_id: str, provider: RegistrationIdentity) -> None:
+        identity= await self.auth_identity_repo.get_identity_by_uid(user.public_id, provider)
+        if identity:
+            raise ConflictError(detail='Provider already linked.')
+        self._add_identity(
+            user_public_id=user.public_id,
+            openid= provider_id,
+            provider=provider
+        )
+        await self.session.commit()
+
+    def _get_email(self, form_data:List[dict]) -> str:
+        user_email = next((user_data['email'] for user_data in form_data 
+            if user_data.get('primary')==True and user_data.get('verified')==True), None)
+        if user_email:
+           return user_email
+        user_email = next((user_data['email'] for user_data in form_data 
+            if user_data.get('verified')==True), None)
+        if user_email:
+            return user_email
+        raise AuthFailedError(detail='No verified email address associated with this GitHub account')
+        
+    async def auth_with_github(self, email_data: List[dict], uid:str, user_agent: str) -> TokenResponseModel:
+        user_email = self._get_email(email_data)
+        return await self.auth_with_provider(
+            user_email,
+            uid, 
+            user_agent, 
+            RegistrationIdentity.GITHUB
+        )
+
+    async def auth_with_google(self, form_data: dict, user_agent: str) -> TokenResponseModel:
+        return await self.auth_with_provider(
+            form_data.get('email'),
+            form_data.get('sub'),
+            user_agent,
+            RegistrationIdentity.GOOGLE
+        )
+    
+    async def link_github(self, user: UserModel, user_data: dict) -> None:
+        return await self.link_provider(
+            user,
+            str(user_data.get('id')),
+            RegistrationIdentity.GITHUB
+        )
+
+    async def link_google(self, user:UserModel, form_data: dict) -> None:
+        return await self.link_provider(
+            user,
+            form_data.get('sub'),
+            RegistrationIdentity.GOOGLE
+        )
+
+    async def add_password(self, user: UserGetModel, password: str) -> int:
+        identity = await self.auth_identity_repo.get_identity_by_uid(user.public_id, RegistrationIdentity.LOCAL)
+        if identity:
+            raise ForbiddenError()
+        return await self.set_email_verification_data(
+            f'add-password:{user.public_id}',
+            {},
+            password
+        )
+    
+    async def confirm_password_adding_with_otp(self, user_public_id: uuid6.UUID, otp:int) -> None:
+        user_data = await self.get_email_verification_data(f'add-password:{user_public_id}', otp)
+        self._add_identity(
+            user_public_id=user_public_id,
+            provider=RegistrationIdentity.LOCAL,
+            hashed_password=user_data['password']
+        )
+        await self.session.commit()
+
+    async def get_users_auth_providers(self, user: UserGetModel) -> List[ProviderResponseModel]:
+        return await self.auth_identity_repo.get_providers_by_id(user.public_id)
+    
+    async def unlink_identity(
+        self, 
+        user: UserGetModel, 
+        identity_public_id: uuid6.UUID 
+        ) -> None:
+        providers = await self.auth_identity_repo.get_providers_by_id(user.public_id)
+        is_local = any(identity_id == identity_public_id and provider == RegistrationIdentity.LOCAL
+                        for identity_id, provider in providers)
+        if len(providers) == 1 or is_local:
+            raise ForbiddenError()
+        is_deleted = await self.auth_identity_repo.delete_identity_record(
+            identity_public_id,
+            user.public_id
+        ) 
+        if not is_deleted:
+            raise NotFoundError()
         await self.session.commit()

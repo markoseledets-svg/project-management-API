@@ -8,11 +8,13 @@ A modern, full-featured REST API for project and task management with role-based
 
 ### 🔐 Authentication & Session Management
 - **JWT Auth with Rotation & Family Tracking:** Access + refresh tokens in secure HTTP-only cookies with automatic rotation and token reuse detection.
+- **OAuth 2.0 & Social Login (Google & GitHub):** Sign in or link Google and GitHub accounts with verified email enforcement, seamless account linking, and flash cookie error handling.
+- **Multi-Provider Identity Architecture:** Decoupled `auth_identity` model allowing users to sign up via OAuth and later add a local password via email OTP verification (`/add-password`), as well as view and unlink providers with lockout prevention.
 - **Active Session Dashboard:** View active sessions with parsed device, browser, and OS metadata (`GET /api/v1/auth/active-sessions`).
 - **Granular Session Revocation:** Revoke specific device sessions (`POST /api/v1/auth/logout-session/{token_public_id}`) or logout from all devices at once (`POST /api/v1/auth/logout-everywhere`).
 - **Redis Token Blacklisting:** Instant access token & session invalidation using Redis.
-- **Rate Limiting:** Built-in rate limiting across auth endpoints (by IP, email, and user identity).
-- **Email Verification (OTP):** Secure registration and forgotten password workflows via SMTP (Brevo/custom).
+- **Rate Limiting:** Built-in sliding-window rate limiting across all auth, password, and OAuth endpoints (by IP, email, and user identity).
+- **Email Verification (OTP):** Secure registration, password addition, and forgotten password workflows via SMTP (Brevo/custom).
 - **Account Soft-Deletion & Recovery:** 14-day grace period on account deletion (`DELETE /api/v1/auth/delete-account`) with instant one-click restoration via restore tokens (`POST /api/v1/auth/restore-account`).
 - **Password Management:** Change password with automatic revocation of all other active sessions, plus OTP-based forgotten password recovery.
 
@@ -29,7 +31,7 @@ A modern, full-featured REST API for project and task management with role-based
 - **Assignee Support:** Assign and reassign project members to specific tasks.
 
 ### 💻 User Interface
-- **Interactive Web App (`/app`):** Built-in dashboard to manage projects, tasks, invitations, and active sessions.
+- **Interactive Web App (`/app`):** Built-in dashboard to manage projects, tasks, invitations, active sessions, and linked auth providers.
 - **Interactive Swagger Docs (`/docs`):** Automatically available in development mode.
 
 ---
@@ -44,7 +46,7 @@ A modern, full-featured REST API for project and task management with role-based
 | ORM | **SQLAlchemy 2.0 (async)** + **asyncpg** |
 | Migrations | **Alembic** |
 | Cache & Blacklist | **Redis 7.2** (`redis.asyncio`) |
-| Auth & Security | **PyJWT**, **Passlib (bcrypt)**, **uuid6** |
+| Auth & Security | **PyJWT**, **Passlib (bcrypt)**, **Authlib 1.8**, **uuid6**, **itsdangerous** |
 | Validation | **Pydantic v2** |
 | Device Parsing | **user-agents** |
 | Templating | **Jinja2** |
@@ -66,20 +68,21 @@ A modern, full-featured REST API for project and task management with role-based
 │           └── routers/        # auth, projects, tasks, frontend routes
 ├── core/
 │   ├── exceptions.py           # Custom API exceptions & error handlers
+│   ├── oauth_conf.py           # OAuth client configuration (Google, GitHub)
 │   ├── security.py             # JWT token handling, hashing, cookie helpers
 │   └── rate_limiter.py
 ├── database/
 │   ├── db_config.py            # Async engine, connection pool configuration
 │   ├── redis_config.py         # Redis connection pool
-│   └── db_model.py             # SQLAlchemy ORM models (User, RefreshToken, Project, Task, Invitation)
+│   └── db_model.py             # SQLAlchemy ORM models (User, AuthIdentity, RefreshToken, Project, Task, Invitation)
 ├── repository/                 # Repository layer (DB queries and transactions)
 ├── services/                   # Business logic layer (Auth, Project, Task, Email, Redis)
 ├── schemas/                    # Pydantic schemas (requests, responses, validation)
 ├── templates/                  # Frontend UI templates (app.html, index.html, email.html)
 ├── tests/
-│   ├── conftest.py             # Fixtures, test engine, fake Redis, test client
+│   ├── conftest.py             # Fixtures, test engine, fake Redis, test client, OAuth mocks
 │   ├── factories/              # Polyfactory model factories
-│   ├── auth_test.py            # Authentication, session, and password tests
+│   ├── auth_test.py            # Authentication, session, OAuth, and password tests
 │   ├── project_test.py         # Project CRUD and permissions tests
 │   ├── task_test.py            # Task workflow and assignment tests
 │   └── invitation_test.py      # Project invitation tests
@@ -147,7 +150,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 The test suite uses **Pytest** with **Polyfactory** and **FakeRedis** against an isolated PostgreSQL test database with transaction rollback after each test.
 
 ```bash
-# Run all 59 tests
+# Run all 75 tests
 pytest
 
 # Run tests with output details
@@ -176,6 +179,7 @@ pytest tests/invitation_test.py
 | `ACCESS_SECRET_KEY` | Secret for Access JWTs (64 chars) | *Generated key* |
 | `REFRESH_SECRET_KEY` | Secret for Refresh JWTs (64 chars) | *Generated key* |
 | `RESTORE_SECRET_KEY` | Secret for Account Restore JWTs | *Generated key* |
+| `SESSION_SECRET_KEY` | Secret for Starlette SessionMiddleware (OAuth state) | *Generated key* |
 | `ALGORITHM` | JWT signing algorithm | `HS256` |
 | `ENV` | Environment (`development` / `production`) | `development` |
 | `REDIS_PASSWORD` | Redis auth password | `redis_secret` |
@@ -184,6 +188,10 @@ pytest tests/invitation_test.py
 | `SMTP_KEY` | SMTP server password / API key | `smtp_app_key` |
 | `SMTP_SERVER` | SMTP host address | `smtp-relay.brevo.com` |
 | `SMTP_PORT` | SMTP port | `587` |
+| `GOOGLE_CLIENT_ID` | Google OAuth 2.0 Client ID | `your-id.apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 Client Secret | `YOUR_GOOGLE_SECRET` |
+| `GITHUB_CLIENT_ID` | GitHub OAuth App Client ID | `your_github_clientid` |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth App Client Secret | `YOUR_GITHUB_SECRET` |
 | `TEST_DATABASE_URL` | Isolated test DB connection | `postgresql+asyncpg://...` |
 
 Generate secret keys:
@@ -219,6 +227,7 @@ alembic downgrade -1
 - [x] HTTP-only cookies with `SameSite=Lax` and configurable `Secure` flags
 - [x] Email OTP verification for registration & password reset
 - [x] Account soft-deletion with 14-day grace period and one-click restore
+- [x] OAuth2 / Social Login (Google, GitHub) with account linking and provider management
 
 #### Projects & Tasks
 - [x] Role-based access control (`OWNER`, `ADMIN`, `EDITOR`, `VIEWER`)
@@ -228,11 +237,10 @@ alembic downgrade -1
 - [x] Task status processing (`TODO` → `IN_PROGRESS` → `REVIEW` → `COMPLETED`)
 - [x] Task assignees
 - [ ] Task priority, tags, and filtering/sorting
-- [ ] OAuth2 / Social Login (Google, GitHub)
 
 #### Infrastructure
 - [x] Redis caching, rate limiting, and session blacklisting
-- [x] Full automated test suite (59 unit & integration tests)
+- [x] Full automated test suite (75 unit & integration tests)
 - [ ] Background workers for automated expired token & soft-deleted account cleanup
 - [ ] Production CI/CD pipeline and cloud deployment
 

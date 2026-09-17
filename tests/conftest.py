@@ -4,15 +4,15 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 import pytest
 from httpx import AsyncClient, ASGITransport
 from fakeredis import FakeAsyncRedis
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock, MagicMock
 
-from core.security import generate_access_jwt, generate_refresh_jwt
+from core.security import generate_access_jwt, generate_refresh_jwt, hash_data, generate_restore_jwt
 from tests.factories.base import BaseFactory
-from tests.factories.users import UserFactory, RefreshFactory
+from tests.factories.users import UserFactory, RefreshFactory, AuthIdentityFactory, RAW_PASSWORD
 from tests.factories.invitations import InvitationFactory
 from tests.factories.projects import ProjectFactory, UserProjectFactory
 from tests.factories.tasks import TaskFactory
-from database.db_model import Base, UserRole, InvitationStatus, ProjectStatus, TaskStatus
+from database.db_model import Base, UserRole, InvitationStatus, ProjectStatus, TaskStatus, RegistrationIdentity
 from app.api.dependencies.db_dependencies import get_db
 from app.api.dependencies.redis_dependencies import get_redis
 from app.main import app
@@ -173,4 +173,58 @@ async def test_task_completed(test_project, test_project_user):
         assignee_id = test_project_user.public_id,
         status = TaskStatus.COMPLETED
     )
-    
+
+@pytest.fixture
+async def test_local_identity(test_user):
+    hashed_password = hash_data(RAW_PASSWORD)
+    return await AuthIdentityFactory.create_async(
+        user_public_id = test_user.public_id,
+        hashed_password=hashed_password,
+        provider=RegistrationIdentity.LOCAL
+    )
+
+@pytest.fixture
+async def test_google_identity(test_user):
+    return await AuthIdentityFactory.create_async(
+        user_public_id=test_user.public_id,
+        provider=RegistrationIdentity.GOOGLE,
+    )
+
+@pytest.fixture
+def mock_google_oauth():
+    with patch("app.api.v1.routers.auth_routes.oauth.google.authorize_access_token", new_callable=AsyncMock) as mock:
+        def configure(email="google_user@test.com", sub="google-sub-12345"):
+            mock.return_value = {
+                "userinfo": {
+                    "email": email,
+                    "sub": sub
+                }
+            }
+        configure()
+        mock.configure = configure
+        yield mock
+
+@pytest.fixture
+def mock_github_oauth():
+    with patch("app.api.v1.routers.auth_routes.oauth.github.authorize_access_token", new_callable=AsyncMock) as mock_auth, \
+         patch("app.api.v1.routers.auth_routes.oauth.github.get", new_callable=AsyncMock) as mock_get:
+        
+        mock_auth.return_value = {"access_token": "mock_gh_token"}
+
+        def configure(user_id=12345678, email="github_user@test.com", verified=True, primary=True):
+            user_resp = MagicMock()
+            user_resp.json.return_value = {"id": user_id}
+            
+            emails_resp = MagicMock()
+            emails_resp.json.return_value = [
+                {"email": email, "primary": primary, "verified": verified}
+            ]
+
+            async def mock_fetch(url, token=None):
+                return user_resp if url == "user" else emails_resp
+
+            mock_get.side_effect = mock_fetch
+
+        configure()
+        mock_auth.configure = configure
+        yield mock_auth, mock_get

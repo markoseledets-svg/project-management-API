@@ -6,11 +6,10 @@ from pydantic import (
         field_validator,
         SecretStr,
         )
-import uuid
+from uuid import UUID
 import re
 from datetime import datetime
-
-from core.exceptions import DataValidationError
+from database.db_model import RegistrationIdentity
 
 class UserBaseModel(BaseModel):
     email: EmailStr
@@ -19,7 +18,7 @@ class UserBaseModel(BaseModel):
     
 
 class UserGetModel(UserBaseModel):
-    public_id: uuid.UUID
+    public_id: UUID
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -64,14 +63,38 @@ class TokenResponseModel(BaseModel):
     deletes_at: datetime | None = None
 
 class RawSessionDataModel(BaseModel):
-    token_public_id: uuid.UUID
+    token_public_id: UUID
     session_started_at: datetime
     user_agent: str
 
 class SessionsGetModel(BaseModel):
-    token_public_id: uuid.UUID
+    token_public_id: UUID
     session_started_at: datetime
     device_type: str
     browser_data: str | None = None
     os_data: str | None = None
     device_model: str | None = None
+
+class UserAuthModel(UserRegisterModel):
+    pass
+
+class IdentityLoginModel(BaseModel):
+    user_public_id:UUID
+    hashed_password: SecretStr
+    deletes_at: datetime | None = None
+
+class GoogleAuthModel(BaseModel):
+    user_public_id: UUID
+    
+class AddPasswordModel(BaseModel):
+    password: SecretStr = Field(min_length=8, max_length=64)
+
+    @field_validator("password", mode="after")
+    def validate_password(cls, v: SecretStr) -> SecretStr:
+        return _validate_strong_password(v)
+
+class ProviderResponseModel(BaseModel):
+    identity_public_id: UUID
+    provider: RegistrationIdentity
+
+    model_config = ConfigDict(from_attributes=True)

@@ -17,3 +17,6 @@ redis==7.4.0
 fakeredis==2.36.2
 polyfactory==3.3.0
 user-agents==2.2.0
+itsdangerous==2.2.0
+authlib==1.8.0
+httpx==0.28.1

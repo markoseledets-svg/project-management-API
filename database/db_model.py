@@ -1,5 +1,5 @@
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, Index, text
+from sqlalchemy import ForeignKey, Index, text, UniqueConstraint
 from sqlalchemy import DateTime
 from datetime import datetime, timezone, timedelta
 from typing import List
@@ -31,6 +31,11 @@ class TaskStatus(str, Enum):
     REVIEW = "review"
     TODO = "todo"
 
+class RegistrationIdentity(str, Enum):
+    LOCAL = "local"
+    GOOGLE = "google"
+    GITHUB = "github"
+
 class Base(DeclarativeBase):
     pass
 
@@ -44,7 +49,6 @@ class UserModel(Base):
                                                     default=uuid6.uuid7
                                                   )
     email: Mapped[str] = mapped_column(nullable=False, unique=True)
-    password: Mapped[str] = mapped_column(nullable=False)
     deletes_at: Mapped[datetime|None] = mapped_column(
         DateTime(timezone=True), 
         nullable=True,
@@ -63,6 +67,31 @@ class UserModel(Base):
         foreign_keys='[InvitationModel.target_user_public_id]'
         )
     task_relation: Mapped[List["TaskModel"]] = relationship(back_populates="user_relation")
+    identity_relation: Mapped[List["AuthIdentityModel"]] = relationship(back_populates="user_relation", passive_deletes=True)
+
+class AuthIdentityModel(Base):
+    __tablename__='auth_identity'
+
+    identity_public_id: Mapped[uuid.UUID] = mapped_column(
+                                                            primary_key = True,
+                                                            nullable = False,
+                                                            unique = True,
+                                                            default=uuid6.uuid7
+                                                        )
+    user_public_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.public_id", ondelete="CASCADE"), 
+        nullable=False
+    )
+    hashed_password: Mapped[str|None] = mapped_column(nullable=True)
+    provider: Mapped[RegistrationIdentity] = mapped_column(nullable=False)
+    provider_user_id: Mapped[str|None] = mapped_column(nullable=True)
+
+    user_relation: Mapped["UserModel"] = relationship(back_populates="identity_relation")
+
+    __table_args__=(
+        UniqueConstraint("provider", "provider_user_id", name="uq_google_identity"),
+        UniqueConstraint("user_public_id", "provider", name="uq_local_identity")
+        )
 
 class RefreshTokenModel(Base):
     __tablename__ = "refresh_tokens"

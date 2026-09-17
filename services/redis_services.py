@@ -1,12 +1,10 @@
-from random import randint
 import redis.asyncio as redis
 from typing import Optional
 import time
 import json
 
 from core.exceptions import ToManyRequestsError, AuthFailedError
-from core.security import hash_data
-from schemas.login_schemas import UserRegisterModel
+from schemas.login_schemas import TokenResponseModel
 
 class RedisServices:
     def __init__ (self, redis_client:redis.Redis):
@@ -33,23 +31,16 @@ class RedisServices:
             raise ToManyRequestsError()
     
     
-    async def add_user_otp(self, user_data:UserRegisterModel) -> int:
-        hased_password = hash_data(user_data.password.get_secret_value())
-        otp = randint(100000, 999999)
-        key = f"otp:users:{user_data.email}"
-        json_data = json.dumps({
-                                "email":user_data.email, 
-                                "password":hased_password, 
-                                "otp":otp
-                                })
+    async def add_user_otp(self, user_key_value: str, values_dict: dict) -> None:
+        key = f"otp:{user_key_value}"
+        json_data = json.dumps(values_dict)
         await self.redis_client.setex(key, 180, json_data)
-        return otp
     
-    async def get_user_registration_data(
+    async def get_user_otp_data(
                                         self,
-                                        email:str
+                                        user_key_value:str
                                         ) -> str:
-        key = f"otp:users:{email}"
+        key = f"otp:{user_key_value}"
         user_data = await self.redis_client.get(key)
         if not user_data:
             raise AuthFailedError()
@@ -57,9 +48,9 @@ class RedisServices:
     
     async def delete_otp_data(
                                 self,
-                                email:str,
+                                user_key_value:str,
                                 ) -> None:
-        key = f"otp:users:{email}"
+        key = f"otp:users:{user_key_value}"
         await self.redis_client.delete(key)
     
     async def save_banned_access_token(
@@ -81,10 +72,10 @@ class RedisServices:
     async def save_token_data_for_retries(
                                             self, 
                                             refresh_token:str, 
-                                            payload:dict
+                                            payload:TokenResponseModel
                                           ) -> None:
         key =f"refresh-rotation:{refresh_token}"
-        json_payload = json.dumps(payload)
+        json_payload = json.dumps(payload.model_dump(mode='json'))
         await self.redis_client.setex(key, 5, json_payload)
     
     async def check_refresh_for_retries(self, refresh_token:str) -> Optional[dict]:

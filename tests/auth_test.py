@@ -3,8 +3,10 @@ import json
 import asyncio
 import uuid6
 from datetime import datetime, timedelta, timezone
+from authlib.integrations.base_client import OAuthError
 
-from tests.factories.users import RAW_PASSWORD, RefreshFactory
+from database.db_model import RegistrationIdentity
+from tests.factories.users import RAW_PASSWORD, RefreshFactory, AuthIdentityFactory
 from core.security import generate_access_jwt, generate_refresh_jwt
 
 @pytest.mark.asyncio
@@ -16,7 +18,7 @@ async def test_registration_process(test_client, fake_redis):
                                     )
     assert succesfull_response.status_code == 200
 
-    redis_data_str = await fake_redis.get("otp:users:test1@gmail.com")
+    redis_data_str = await fake_redis.get("otp:register:test1@gmail.com")
     assert redis_data_str is not None
     redis_data = json.loads(redis_data_str)
     correct_otp = redis_data["otp"]
@@ -37,7 +39,7 @@ async def test_duplicate_email(test_client, test_user):
     assert duplicate_response.status_code == 409
     
 @pytest.mark.asyncio
-async def test_auth(test_client, test_user):
+async def test_auth(test_client, test_user, test_local_identity):
     user_data = {"username": test_user.email, "password": RAW_PASSWORD}
     succesfull_login_response = await test_client.post(
         "/api/v1/auth/",
@@ -55,8 +57,8 @@ async def test_refresh(test_client, test_refresh_token):
     assert refresh_rotation_request.status_code == 204
 
 @pytest.mark.asyncio
-async def test_failed_login(test_client, test_user):
-    user_data = {"username": test_user.email, "password": "random_password"}
+async def test_failed_login(test_client, test_user, test_local_identity):
+    user_data = {"username": test_user.email, "password": "Random_password123"}
     fail_response = await test_client.post(
         "/api/v1/auth/",
         data = user_data
@@ -65,7 +67,7 @@ async def test_failed_login(test_client, test_user):
 
 @pytest.mark.asyncio
 async def test_user_not_found(test_client):
-    user_data = {"username":"random@user.com", "password":"random_password"}
+    user_data = {"username":"random@user.com", "password":"Random_password123"}
     not_found_response = await test_client.post(
         "/api/v1/auth/",
         data = user_data
@@ -110,7 +112,7 @@ async def test_logout_and_token_invalidation(test_client, auth_cookies):
 
 @pytest.mark.asyncio
 async def test_rate_limit(test_client):
-    bad_user_data = {"username":"user@mail.fake", "password":"userfake123"}
+    bad_user_data = {"username":"user@mail.fake", "password":"Userfake123_"}
     statuses = []
     for _ in range(6):
         response = await test_client.post(
@@ -230,7 +232,7 @@ async def test_logout_everywhere(test_client, test_user, auth_cookies):
     assert me_response_2.status_code == 401
 
 @pytest.mark.asyncio
-async def test_delete_and_restore_account_flow(test_client, test_user, auth_cookies):
+async def test_delete_and_restore_account_flow(test_client, test_user, auth_cookies, test_local_identity):
     delete_response = await test_client.delete(
         "/api/v1/auth/delete-account",
         cookies=auth_cookies
@@ -241,10 +243,8 @@ async def test_delete_and_restore_account_flow(test_client, test_user, auth_cook
         "/api/v1/auth/",
         data={"username": test_user.email, "password": RAW_PASSWORD}
     )
-    assert login_response.status_code == 200
-    login_data = login_response.json()
-    assert login_data["status"] == "pending_restore"
-    restore_token = login_data["restore_token"]
+    assert login_response.status_code == 204
+    restore_token = login_response.cookies.get('restore_token')
 
     restore_response = await test_client.post(
         "/api/v1/auth/restore-account",
@@ -259,7 +259,7 @@ async def test_delete_and_restore_account_flow(test_client, test_user, auth_cook
     assert login_after_restore.status_code == 204
 
 @pytest.mark.asyncio
-async def test_restore_token_reuse_rejected(test_client, test_user, auth_cookies):
+async def test_restore_token_reuse_rejected(test_client, test_user, auth_cookies, test_local_identity):
     await test_client.delete(
         "/api/v1/auth/delete-account",
         cookies=auth_cookies
@@ -268,22 +268,22 @@ async def test_restore_token_reuse_rejected(test_client, test_user, auth_cookies
         "/api/v1/auth/",
         data={"username": test_user.email, "password": RAW_PASSWORD}
     )
-    restore_token = login_response.json()["restore_token"]
+    restore_token = login_response.cookies.get('restore_token')
 
     first_restore = await test_client.post(
         "/api/v1/auth/restore-account",
-        json={"restore_token": restore_token}
+        cookies={'restore_token':restore_token}
     )
     assert first_restore.status_code == 204
 
     second_restore = await test_client.post(
         "/api/v1/auth/restore-account",
-        json={"restore_token": restore_token}
+        cookies={'restore_token':restore_token}
     )
     assert second_restore.status_code == 401
 
 @pytest.mark.asyncio
-async def test_change_password_flow(test_client, test_user, auth_cookies):
+async def test_change_password_flow(test_client, test_user, auth_cookies, test_local_identity):
     change_response = await test_client.post(
         "/api/v1/auth/change-password",
         cookies=auth_cookies,
@@ -313,7 +313,7 @@ async def test_change_password_invalid_old_password(test_client, auth_cookies):
     assert change_response.status_code == 401
 
 @pytest.mark.asyncio
-async def test_forgotten_password_flow(test_client, test_user, fake_redis):
+async def test_forgotten_password_flow(test_client, test_user, fake_redis, test_local_identity):
     new_pwd = "RecoveredPassword123!"
     forgot_response = await test_client.post(
         "/api/v1/auth/forgotten-password",
@@ -321,7 +321,7 @@ async def test_forgotten_password_flow(test_client, test_user, fake_redis):
     )
     assert forgot_response.status_code == 204
 
-    redis_data_str = await fake_redis.get(f"otp:users:{test_user.email}")
+    redis_data_str = await fake_redis.get(f"otp:password-change:{test_user.email}")
     assert redis_data_str is not None
     otp = json.loads(redis_data_str)["otp"]
 
@@ -336,3 +336,179 @@ async def test_forgotten_password_flow(test_client, test_user, fake_redis):
         data={"username": test_user.email, "password": new_pwd}
     )
     assert login_response.status_code == 204
+
+@pytest.mark.asyncio
+async def test_oauth_redirects(test_client, auth_cookies):
+    auth_google_response = await test_client.get(
+        '/api/v1/auth/oauth/google/auth'
+    )
+    assert auth_google_response.status_code == 302
+    link_google_response = await test_client.get(
+        '/api/v1/auth/oauth/google/link',
+        cookies=auth_cookies
+    )
+    assert link_google_response.status_code == 302
+    auth_github_response = await test_client.get(
+        '/api/v1/auth/oauth/github/auth'
+    )
+    assert auth_github_response.status_code == 302
+    link_github_response = await test_client.get(
+        '/api/v1/auth/oauth/github/link',
+        cookies=auth_cookies
+    )
+    assert link_github_response.status_code == 302
+
+@pytest.mark.asyncio
+async def test_unlink_provider(test_client, test_local_identity, test_google_identity, auth_cookies):
+    delete_response = await test_client.delete(
+        f'/api/v1/auth/unlink-provider/{test_google_identity.identity_public_id}',
+        cookies=auth_cookies
+    )
+    assert delete_response.status_code == 204
+
+@pytest.mark.asyncio
+async def test_add_password(test_client, test_google_identity, auth_cookies, fake_redis):
+    add_response = await test_client.post(
+        '/api/v1/auth/add-password',
+        json={"password": "NewStrongPassword123!"},
+        cookies=auth_cookies
+    )
+    assert add_response.status_code == 204
+    otp_redis_data = await fake_redis.get(f'otp:add-password:{test_google_identity.user_public_id}')
+    assert otp_redis_data is not None
+    otp = json.loads(otp_redis_data)["otp"]
+    verify_response = await test_client.post(
+        '/api/v1/auth/add-password/verify',
+        json={"otp": otp},
+        cookies=auth_cookies
+    )
+    assert verify_response.status_code == 204
+
+@pytest.mark.asyncio
+async def test_get_user_providers(test_client, auth_cookies, test_google_identity):
+    providers_response = await test_client.get(
+        '/api/v1/auth/providers',
+        cookies=auth_cookies
+    )
+    assert providers_response.status_code == 200
+    data = providers_response.json()
+    assert len(data) >= 1
+    assert any(p["provider"] == "google" for p in data)
+
+@pytest.mark.asyncio
+async def test_unlink_last_provider_forbidden(test_client, test_google_identity, auth_cookies):
+    delete_response = await test_client.delete(
+        f'/api/v1/auth/unlink-provider/{test_google_identity.identity_public_id}',
+        cookies=auth_cookies
+    )
+    assert delete_response.status_code == 403
+
+@pytest.mark.asyncio
+async def test_unlink_local_forbidden(test_client, test_local_identity, test_google_identity, auth_cookies):
+    delete_response = await test_client.delete(
+        f'/api/v1/auth/unlink-provider/{test_local_identity.identity_public_id}',
+        cookies=auth_cookies
+    )
+    assert delete_response.status_code == 403
+
+@pytest.mark.asyncio
+async def test_unlink_non_existent_provider(test_client, auth_cookies):
+    random_id = uuid6.uuid7()
+    delete_response = await test_client.delete(
+        f'/api/v1/auth/unlink-provider/{random_id}',
+        cookies=auth_cookies
+    )
+    assert delete_response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_add_password_already_exists(test_client, test_local_identity, auth_cookies):
+    response = await test_client.post(
+        '/api/v1/auth/add-password',
+        json={"password": "AnotherStrongPassword123!"},
+        cookies=auth_cookies
+    )
+    assert response.status_code == 403
+
+@pytest.mark.asyncio
+async def test_add_password_wrong_otp(test_client, test_google_identity, auth_cookies, fake_redis):
+    add_response = await test_client.post(
+        '/api/v1/auth/add-password',
+        json={"password": "NewStrongPassword123!"},
+        cookies=auth_cookies
+    )
+    assert add_response.status_code == 204
+    verify_response = await test_client.post(
+        '/api/v1/auth/add-password/verify',
+        json={"otp": 999999},
+        cookies=auth_cookies
+    )
+    assert verify_response.status_code == 401
+
+@pytest.mark.asyncio
+async def test_google_callback_login_success(test_client, mock_google_oauth):
+    mock_google_oauth.configure(email="google_new_user@test.com", sub="google-sub-12345")
+    response = await test_client.get("/api/v1/auth/oauth/google/callback")
+    assert response.status_code == 303
+    assert response.headers["location"] == "http://localhost:8000/app"
+    assert "access_token" in response.cookies
+    assert "refresh_token" in response.cookies
+
+@pytest.mark.asyncio
+async def test_google_callback_link_success(test_client, test_user, auth_cookies, mock_google_oauth):
+    mock_google_oauth.configure(email=test_user.email, sub="google-link-sub-777")
+    response = await test_client.get(
+        "/api/v1/auth/oauth/google/callback?state=link",
+        cookies=auth_cookies
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "http://localhost:8000/app"
+
+@pytest.mark.asyncio
+async def test_google_callback_error(test_client, mock_google_oauth):
+    mock_google_oauth.side_effect = OAuthError("access_denied", description="The user denied consent")
+    response = await test_client.get("/api/v1/auth/oauth/google/callback")
+    assert response.status_code == 303
+    assert response.headers["location"] == "http://localhost:8000/"
+    assert "oauth_error" in response.cookies
+
+@pytest.mark.asyncio
+async def test_github_callback_login_success(test_client, mock_github_oauth):
+    mock_auth, _ = mock_github_oauth
+    mock_auth.configure(email="github_new_user@test.com", user_id=12345678)
+    response = await test_client.get("/api/v1/auth/oauth/github/callback")
+    assert response.status_code == 303
+    assert response.headers["location"] == "http://localhost:8000/app"
+    assert "access_token" in response.cookies
+    assert "refresh_token" in response.cookies
+
+@pytest.mark.asyncio
+async def test_github_callback_unverified_email(test_client, mock_github_oauth):
+    mock_auth, _ = mock_github_oauth
+    mock_auth.configure(email="unverified_gh@test.com", verified=False)
+    response = await test_client.get("/api/v1/auth/oauth/github/callback")
+    assert response.status_code == 303
+    assert response.headers["location"] == "http://localhost:8000/"
+    assert "oauth_error" in response.cookies
+    assert "No verified email address" in response.cookies["oauth_error"]
+
+@pytest.mark.asyncio
+async def test_github_callback_link_success(test_client, test_user, auth_cookies, mock_github_oauth):
+    mock_auth, _ = mock_github_oauth
+    mock_auth.configure(email=test_user.email, user_id=999111222)
+    response = await test_client.get(
+        "/api/v1/auth/oauth/github/callback?state=link",
+        cookies=auth_cookies
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "http://localhost:8000/app"
+
+@pytest.mark.asyncio
+async def test_github_callback_error(test_client, mock_github_oauth):
+    mock_auth, _ = mock_github_oauth
+    mock_auth.side_effect = OAuthError("access_denied", description="The user denied request")
+    response = await test_client.get("/api/v1/auth/oauth/github/callback")
+    assert response.status_code == 303
+    assert response.headers["location"] == "http://localhost:8000/"
+    assert "oauth_error" in response.cookies
+
+

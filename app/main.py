@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import os
 from redis.exceptions import RedisError
 from starlette.middleware.sessions import SessionMiddleware
+import json
 
 from database.db_config import engine
 from app.api.v1 import router
@@ -17,7 +18,9 @@ from core.exceptions import AppBaseError
 load_dotenv()
 
 IS_PRODUCTION = os.getenv("ENV") == "production"
-CORS_ORIGINS = os.getenv("CORS_ORIGINS")
+raw_cors = os.getenv("CORS_ORIGINS")
+CORS_ORIGINS = json.loads(raw_cors) if raw_cors else []
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield

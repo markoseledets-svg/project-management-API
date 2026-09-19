@@ -32,6 +32,9 @@ class ProjectsRepository(BaseRepository[ProjectModel]):
             )
             project_list.append(project_with_role)
         return project_list
+    
+    async def get_status_by_id(self, project_public_id: uuid.UUID):
+        return await self.get_columns_by('status', project_public_id=project_public_id)
 
 class UserProjectRepository(BaseRepository[UserProjectRelation]):
     def __init__(self, session:AsyncSession):

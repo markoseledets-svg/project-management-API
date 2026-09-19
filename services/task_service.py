@@ -38,14 +38,14 @@ class TaskService:
             )
             if not user_role or user_role not in allowed_roles:
                 raise ForbiddenError(detail="User dont have enough permission to process tasks in this project!")
-        new_task = TaskModel(
+        self.task_repo.create(
                             project_public_id = project_public_id,
                             task_name=task_data.task_name, 
                             description=task_data.description,
                             assignee_id = task_data.assignee_id if task_data.assignee_id else None,
                             status = TaskStatus.IN_PROGRESS if task_data.assignee_id else TaskStatus.TODO
                             )
-        self.task_repo.add(new_task)
+        
         await self.session.commit()
     
     async def get_curr_user_project_tasks(
@@ -61,7 +61,8 @@ class TaskService:
                                                    UserRole.ADMIN,
                                                    UserRole.EDITOR,
                                                    UserRole.VIEWER,
-                                                   )
+                                                   ),
+                                    check_active=False
                                     )
         return await self.task_repo.get_user_tasks_request(project_public_id)
         
@@ -91,7 +92,6 @@ class TaskService:
         task_data = await self.get_task_by_id(task_public_id, project_public_id)
         self.task_repo.update(task_data,update_model)
         await self.session.commit()
-        await self.session.refresh(task_data)
         return task_data
 
     async def delete_task(
@@ -126,7 +126,6 @@ class TaskService:
     async def change_task_status(self, task:TaskModel, new_status:TaskStatus) -> TaskModel:
         task.status = new_status
         await self.session.commit()
-        await self.session.refresh(task)
         return task
 
     async def editor_task_status_change(
@@ -242,7 +241,6 @@ class TaskService:
         task.assignee_id = user_public_id
         task.status = TaskStatus.IN_PROGRESS
         await self.session.commit()
-        await self.session.refresh(task)
         return task
     
     async def assign_user_to_task(
@@ -269,7 +267,6 @@ class TaskService:
         task.assignee_id = target_user_public_id
         task.status = TaskStatus.IN_PROGRESS
         await self.session.commit()
-        await self.session.refresh(task)
         return task
     
     async def delete_task_assignee(
@@ -291,5 +288,4 @@ class TaskService:
         task.assignee_id = None
         task.status = TaskStatus.TODO
         await self.session.commit()
-        await self.session.refresh(task)
         return task

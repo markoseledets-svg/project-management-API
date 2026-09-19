@@ -222,8 +222,9 @@ async def verify_change_forgotten_password(
     ]
 )
 async def google_auth_redirect(request: Request):
+    request.session["oauth_action"] = "auth"
     redirect_url = request.url_for('process_google_callback_data')
-    return await oauth.google.authorize_redirect(request, redirect_url, state='auth')
+    return await oauth.google.authorize_redirect(request, redirect_url)
 
 @router.get(
     "/oauth/google/link",
@@ -233,8 +234,9 @@ async def google_auth_redirect(request: Request):
     ]
 )
 async def google_link_redirect(request:Request, user: UserGetModel = Depends(get_current_user)):
+    request.session["oauth_action"] = "link"
     redirect_url = request.url_for('process_google_callback_data')
-    return await oauth.google.authorize_redirect(request, redirect_url, state='link')
+    return await oauth.google.authorize_redirect(request, redirect_url)
 
 def _create_error_redirect(exc: OAuthError|AppBaseError) -> RedirectResponse:
     exc_response = RedirectResponse('http://localhost:8000/', status_code=303)
@@ -261,9 +263,9 @@ async def process_google_callback_data(
     try:
         token = await oauth.google.authorize_access_token(request)
         form_data = token.get('userinfo')
-        state = request.query_params.get('state')
+        action = request.session.pop('oauth_action', 'auth')
         response = RedirectResponse("http://localhost:8000/app", status_code=303)
-        if state == 'link':
+        if action == 'link':
             user = await get_current_user(service, access_token)
             await service.link_google(user, form_data)
         else: 
@@ -280,8 +282,9 @@ async def process_google_callback_data(
     ]
 )
 async def github_oauth_auth(request: Request):
+    request.session["oauth_action"] = "auth"
     redirect_url = request.url_for('process_github_callback_data')
-    return await oauth.github.authorize_redirect(request, redirect_url, state='auth')
+    return await oauth.github.authorize_redirect(request, redirect_url)
 
 @router.get(
     "/oauth/github/link",
@@ -291,8 +294,9 @@ async def github_oauth_auth(request: Request):
     ]
 )
 async def github_oauth_link(request: Request, user: UserGetModel = Depends(get_current_user)):
+    request.session["oauth_action"] = "link"
     redirect_url = request.url_for('process_github_callback_data')
-    return await oauth.github.authorize_redirect(request, redirect_url, state='link') 
+    return await oauth.github.authorize_redirect(request, redirect_url) 
 
 @router.get(
     "/oauth/github/callback",
@@ -312,9 +316,9 @@ async def process_github_callback_data(
         user_data = user_resp.json()
         email_resp = await oauth.github.get('user/emails', token=token)
         email_data = email_resp.json()
-        state=request.query_params.get('state')
+        action=request.session.pop('oauth_action', 'auth')
         response=RedirectResponse('http://localhost:8000/app', status_code=303)
-        if state == 'link':
+        if action == 'link':
             user = await get_current_user(service, access_token)
             await service.link_github(user, user_data)
         else: 

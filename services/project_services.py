@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-import uuid
+from uuid6 import uuid7, UUID
 
 from repository.projects_repo import ProjectsRepository, UserProjectRepository
 from repository.user_repo import UserRepository
@@ -30,35 +30,32 @@ class ProjectService:
     async def add_new_project(
             self, 
             project_data:ProjectPostModel, 
-            curr_user_id:uuid.UUID
+            curr_user_id: UUID
             ) -> None:
-        new_project = ProjectModel(
+        new_project = self.project_repo.create(
+            project_public_id = uuid7(),
             project_name = project_data.project_name
         )
-        self.project_repo.add(new_project)
-        await self.session.flush()
-
-        new_relation = UserProjectRelation(
+        self.user_project_repo.create(
             user_public_id = curr_user_id,
             project_public_id = new_project.project_public_id,
             user_role = UserRole.OWNER
         )
-        self.session.add(new_relation)
         await self.session.commit()
     
     async def get_curr_user_projects(
             self,
-            curr_user_id: uuid.UUID
+            curr_user_id:  UUID
     ) -> Optional[ProjectWithRoleGetModel]:
         return await self.project_repo.get_user_projects_with_roles(curr_user_id)
     
-    async def get_project_by_id(self, project_public_id:uuid.UUID) -> Optional[ProjectModel]:
+    async def get_project_by_id(self, project_public_id: UUID) -> Optional[ProjectModel]:
         return await self.project_repo.get_project_by_id_request(project_public_id)
     
     async def update_project(
                                 self,
-                                curr_user_id:uuid.UUID,
-                                project_public_id:uuid.UUID,
+                                curr_user_id: UUID,
+                                project_public_id: UUID,
                                 update_data:ProjectUpdateModel
                                 ) -> Optional[ProjectModel|dict]:
         update_model = update_data.model_dump(exclude_unset=True)
@@ -81,8 +78,8 @@ class ProjectService:
     
     async def soft_delete_project(
                             self,
-                            project_public_id:uuid.UUID,
-                            curr_user_id:uuid.UUID
+                            project_public_id: UUID,
+                            curr_user_id: UUID
                             ) -> Optional[ProjectModel]:
         await self.permission_service.verify_user_role(
                                  curr_user_id,
@@ -101,14 +98,15 @@ class ProjectService:
     
     async def change_project_status(
                                         self,
-                                        curr_user_id:uuid.UUID,
-                                        project_public_id:uuid.UUID,
+                                        curr_user_id: UUID,
+                                        project_public_id: UUID,
                                         project_status:ProjectStatus
                                         ) -> Optional[ProjectModel]:
             await self.permission_service.verify_user_role(
                                         curr_user_id,
                                         project_public_id,
-                                        allowed_roles = (UserRole.ADMIN, UserRole.OWNER,)
+                                        allowed_roles = (UserRole.ADMIN, UserRole.OWNER,),
+                                        check_active=False
                                         )
             project = await self.get_project_by_id(project_public_id)
             if not project:
@@ -120,34 +118,34 @@ class ProjectService:
 
     def add_user_to_project(
                                self, 
-                               project_public_id:uuid.UUID,
-                               user_public_id:uuid.UUID,
+                               project_public_id: UUID,
+                               user_public_id: UUID,
                                user_role:UserRole
                                ) -> None:
-        new_relation = UserProjectRelation(
-                                            user_public_id=user_public_id,
-                                            project_public_id=project_public_id,
-                                            user_role=user_role
-        )
-        self.session.add(new_relation) 
+       self.user_project_repo.create(
+            user_public_id=user_public_id,
+            project_public_id=project_public_id,
+            user_role=user_role
+        ) 
 
     async def get_members_list(
                                 self,
-                                user_public_id: uuid.UUID,
-                                project_public_id: uuid.UUID
+                                user_public_id:  UUID,
+                                project_public_id:  UUID
                                 ) -> Optional[List[GetUserDataWithRole]]:
         await self.permission_service.verify_user_role(
             user_public_id,
             project_public_id,
-            allowed_roles=(UserRole.OWNER, UserRole.ADMIN)
+            allowed_roles=(UserRole.OWNER, UserRole.ADMIN),
+            check_active=False
         )
         return await self.user_project_repo.get_user_data_with_roles(project_public_id)
 
     async def delete_user_from_project(
                                         self,
-                                        user_public_id:uuid.UUID,
-                                        target_user_public_id:uuid.UUID,
-                                        project_public_id:uuid.UUID
+                                        user_public_id: UUID,
+                                        target_user_public_id: UUID,
+                                        project_public_id: UUID
                                         ) -> None:
         user_role = await self.permission_service.verify_user_role(
             user_public_id,
@@ -168,9 +166,9 @@ class ProjectService:
 
     async def change_user_role(
                                 self,
-                                user_public_id: uuid.UUID,
+                                user_public_id:  UUID,
                                 new_role_data: UpdateUserRole,
-                                project_public_id: uuid.UUID
+                                project_public_id:  UUID
                                 ) -> None:
         user_role = await self.permission_service.verify_user_role(
             user_public_id,
@@ -192,8 +190,8 @@ class ProjectService:
         
     async def leave_from_project(
                                  self,
-                                 user_public_id: uuid.UUID,
-                                 project_public_id: uuid.UUID  
+                                 user_public_id:  UUID,
+                                 project_public_id:  UUID  
                                  ) -> None:
         relation_data = await self.user_project_repo.get_relation_data(user_public_id, project_public_id)
         if not relation_data:
@@ -213,9 +211,9 @@ class ProjectService:
 
     async def assign_new_owner(
         self,
-        user_public_id: uuid.UUID,
-        project_public_id: uuid.UUID,
-        target_user_id: uuid.UUID
+        user_public_id:  UUID,
+        project_public_id:  UUID,
+        target_user_id:  UUID
         ) -> None:
         if user_public_id == target_user_id:
             raise ConflictError(detail="You can`t assign owner!")
@@ -239,14 +237,15 @@ class ProjectService:
     
     async def verify_and_delete_project(
                                         self,
-                                        user_public_id: uuid.UUID,
-                                        project_public_id: uuid.UUID,
+                                        user_public_id:  UUID,
+                                        project_public_id:  UUID,
                                         project_name: str
                                         ) -> None:
         await self.permission_service.verify_user_role(
             user_public_id,
             project_public_id,
-            allowed_roles=(UserRole.OWNER,)
+            allowed_roles=(UserRole.OWNER,),
+            check_active=False
         )
         project = await self.project_repo.get_project_by_id_request(project_public_id)
         if not project:

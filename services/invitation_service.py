@@ -67,14 +67,13 @@ class InvitationService:
         )
         if relation_exists:
             raise ConflictError(detail="User with this email already in project members!")
-        new_invitation = InvitationModel(
+        self.invitation_repo.create(
             project_public_id=project_public_id,
             sender_public_id=user_public_id,
             target_user_public_id=target_user_public_id,
             user_role=invitation_user_role
         )
         try:
-            self.invitation_repo.add(new_invitation)
             await self.session.commit()
         except IntegrityError:
             await self.session.rollback()

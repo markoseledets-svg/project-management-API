@@ -10,8 +10,10 @@ class BaseRepository(Generic[ModelType]):
         self.model = model
         self.session = session
 
-    def add(self, obj: ModelType) -> None:
-        self.session.add(obj)
+    def create(self, **kwargs: Any) -> ModelType:
+        instance = self.model(**kwargs)
+        self.session.add(instance)
+        return instance
     
     def update(self, db_obj:ModelType, update_data: dict) -> ModelType:
         for key, value in update_data.items():

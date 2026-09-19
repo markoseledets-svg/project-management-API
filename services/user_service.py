@@ -95,13 +95,11 @@ class AuthServices:
         )
 
     def _register_user(self, email:str) -> UserModel:
-        user_public_id = uuid6.uuid7()
-        new_user = UserModel(
-            public_id = user_public_id,
+        return self.user_repo.create(
+            public_id = uuid6.uuid7(),
             email=email
         )
-        self.user_repo.add(new_user)
-        return new_user
+        
 
     def _add_identity(
         self, 
@@ -110,16 +108,13 @@ class AuthServices:
         openid:str | None = None,
         hashed_password: str | None = None
         ) -> AuthIdentityModel:
-        identity_public_id = uuid6.uuid7()
-        new_identity = AuthIdentityModel(
-            identity_public_id=identity_public_id,
+        return self.auth_identity_repo.create(
+            identity_public_id=uuid6.uuid7(),
             user_public_id=user_public_id,
             provider=provider,
             hashed_password=hashed_password,
             provider_user_id=openid
         )
-        self.auth_identity_repo.add(new_identity)
-        return new_identity
 
     async def verify_user_registration(self, email:str, otp: str) -> None:
         user_otp_data = await self.get_email_verification_data(f'register:{email}', otp)
@@ -159,10 +154,8 @@ class AuthServices:
         family_id: Optional[uuid6.UUID] = None
         ) -> RefreshTokenModel:
         new_refresh_token_data = generate_refresh_token_data(user_public_id,useragent, family_id)
-        new_refresh_token = RefreshTokenModel(**new_refresh_token_data)
-        self.refresh_repo.add(new_refresh_token)
+        new_refresh_token = self.refresh_repo.create(**new_refresh_token_data)
         await self.session.commit()
-        await self.session.refresh(new_refresh_token)
         return new_refresh_token
 
     def _generate_auth_tokens(
@@ -355,6 +348,13 @@ class AuthServices:
         await self.redis_client.save_banned_access_token(restore_token, time.time() + 600)
         await self.session.commit()
 
+    async def _invalidate_user_sessions(self, user_public_id: uuid6.UUID) -> None:
+        family_ids = await self.refresh_repo.get_active_tokens_family(user_public_id)
+        if family_ids:
+            await self.refresh_repo.invalidate_user_tokens(user_public_id)
+            for family_id in family_ids:
+                await self.redis_client.save_banned_access_token(family_id, time.time() + 900)
+
     async def change_password(
         self,
         user: UserModel,
@@ -366,10 +366,7 @@ class AuthServices:
         if not verify_hashes(user_data.old_password.get_secret_value(), user_identity.hashed_password):
             raise AuthFailedError()
         user_identity.hashed_password = hash_data(user_data.password.get_secret_value())
-        family_ids = await self.refresh_repo.get_active_tokens_family(user.public_id)
-        await self.refresh_repo.invalidate_user_tokens(user.public_id)
-        for family_id in family_ids:
-            await self.redis_client.save_banned_access_token(family_id, time.time() + 900)
+        await self._invalidate_user_sessions(user.public_id)
         await self.session.commit()
 
     async def change_forgotten_password(
@@ -398,6 +395,8 @@ class AuthServices:
             )
         if not updated:
             raise AuthFailedError()
+        uid = await self.user_repo.get_user_id_by_email(email)
+        await self._invalidate_user_sessions(uid)
         await self.session.commit()
 
     async def auth_with_provider(

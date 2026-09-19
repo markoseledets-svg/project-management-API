@@ -50,7 +50,7 @@ class RedisServices:
                                 self,
                                 user_key_value:str,
                                 ) -> None:
-        key = f"otp:users:{user_key_value}"
+        key = f"otp:{user_key_value}"
         await self.redis_client.delete(key)
     
     async def save_banned_access_token(

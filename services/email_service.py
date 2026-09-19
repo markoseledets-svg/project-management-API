@@ -68,6 +68,6 @@ def send_email(
             server.starttls()
             server.login(SMTP_LOGIN, SMTP_KEY)
             server.send_message(msg)
-        logger.info(f"Email ({email_type}) sent to {user_email}, code: {otp}.")
+        logger.info(f"Email ({email_type}) sent to {user_email}.")
     except Exception as ex:
         logger.error(f"Failed to send email to {user_email}: {ex}.")

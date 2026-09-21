@@ -10,10 +10,12 @@ from starlette.middleware.sessions import SessionMiddleware
 import json
 
 from database.db_config import engine
+from database.redis_config import redis_client
 from app.api.v1 import router
 from app.api.v1.routers import frontend_routes
 from utils.logger import logger
 from core.exceptions import AppBaseError
+from app.middleware.global_rate_limit import GlobalRateLimitMiddleware
 
 load_dotenv()
 
@@ -33,6 +35,8 @@ app = FastAPI(
     openapi_url=None if IS_PRODUCTION else "/openapi.json"
     )
 
+app.state.redis = redis_client
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
@@ -44,6 +48,10 @@ app.add_middleware(
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv('SESSION_SECRET_KEY')
+)
+
+app.add_middleware(
+    GlobalRateLimitMiddleware
 )
 
 @app.exception_handler(SQLAlchemyError)

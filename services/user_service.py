@@ -250,11 +250,12 @@ class AuthServices:
         await self.redis_client.save_token_data_for_retries(user_refresh_token, tokens)
         return tokens
     
-    async def get_user_credentials(self, token:str):
+    async def get_user_credentials(self, token:str, user_data: dict|None = None) -> UserGetModel:
         is_banned = await self.redis_client.check_banned_tokens(token)
         if is_banned:
             raise AuthFailedError()
-        user_data = decode_access_token(token)
+        if not user_data:
+            user_data = decode_access_token(token)
         is_family_banned = await self.redis_client.check_banned_tokens(user_data['token_family_id'])
         if is_family_banned:
             raise AuthFailedError()

@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends, Cookie
+from fastapi import Depends, Cookie, Request
 
 from database.db_config import engine
 from schemas.login_schemas import UserGetModel
@@ -33,10 +33,12 @@ def get_auth_service(db:AnotatedSession, redis:RedisClient):
 AuthServiceDep = Annotated[AuthServices, Depends(get_auth_service)]
 
 async def get_current_user(
+    request: Request,
     auth_services: AuthServiceDep,
     access_token: str | None = Cookie(default=None),
     ) -> UserGetModel:
     if not access_token:
         raise AuthFailedError()
-    return await auth_services.get_user_credentials(access_token)
+    user_data = getattr(request.state, 'user_data', None)
+    return await auth_services.get_user_credentials(access_token, user_data)
     

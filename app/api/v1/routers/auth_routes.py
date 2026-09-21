@@ -266,7 +266,7 @@ async def process_google_callback_data(
         action = request.session.pop('oauth_action', 'auth')
         response = RedirectResponse("http://localhost:8000/app", status_code=303)
         if action == 'link':
-            user = await get_current_user(service, access_token)
+            user = await get_current_user(request=request, auth_services=service, access_token=access_token)
             await service.link_google(user, form_data)
         else: 
             auth_tokens = await service.auth_with_google(form_data, user_agent)
@@ -319,7 +319,7 @@ async def process_github_callback_data(
         action=request.session.pop('oauth_action', 'auth')
         response=RedirectResponse('http://localhost:8000/app', status_code=303)
         if action == 'link':
-            user = await get_current_user(service, access_token)
+            user = await get_current_user(request=request, auth_services=service, access_token=access_token)
             await service.link_github(user, user_data)
         else: 
             auth_tokens = await service.auth_with_github(email_data, str(user_data['id']), user_agent)

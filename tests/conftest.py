@@ -49,9 +49,14 @@ async def db_session(test_engine):
         BaseFactory.__async_session__ = None
         await session.rollback()
 
+@pytest.fixture(autouse=True)
+async def clear_redis_between_tests(fake_redis):
+    yield
+    await fake_redis.flushall()
+
 @pytest.fixture
 async def test_client(test_engine, fake_redis, db_session):
-  
+    app.state.redis = fake_redis
     async def get_fake_redis():
         yield fake_redis
 

@@ -16,6 +16,7 @@ from app.api.v1.routers import frontend_routes
 from utils.logger import logger
 from core.exceptions import AppBaseError
 from app.middleware.global_rate_limit import GlobalRateLimitMiddleware
+from jobs.scheduler import start_cleanup, stop_cleanup
 
 load_dotenv()
 
@@ -25,7 +26,9 @@ CORS_ORIGINS = json.loads(raw_cors) if raw_cors else []
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    start_cleanup()
     yield
+    stop_cleanup()
     await engine.dispose()
 
 app = FastAPI(

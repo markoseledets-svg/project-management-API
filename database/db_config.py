@@ -1,4 +1,4 @@
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 import os
 from dotenv import load_dotenv
 
@@ -18,3 +18,5 @@ engine = create_async_engine(
     pool_recycle = 1800,
     pool_pre_ping = True
     )
+
+async_session_maker = async_sessionmaker(engine, expire_on_commit=False)

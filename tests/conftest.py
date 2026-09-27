@@ -1,10 +1,11 @@
 import os
 from dotenv import load_dotenv
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 import pytest
 from httpx import AsyncClient, ASGITransport
 from fakeredis import FakeAsyncRedis
 from unittest.mock import patch, AsyncMock, MagicMock
+from datetime import datetime, timedelta, timezone
 
 from core.security import generate_access_jwt, generate_refresh_jwt, hash_data, generate_restore_jwt
 from tests.factories.base import BaseFactory
@@ -233,3 +234,44 @@ def mock_github_oauth():
         configure()
         mock_auth.configure = configure
         yield mock_auth, mock_get
+
+@pytest.fixture(autouse=True)
+def patch_cleanup_session(test_engine):
+    test_session_maker = async_sessionmaker(test_engine, expire_on_commit=False)
+    with patch("jobs.cleanup_jobs.async_session_maker", test_session_maker):
+        yield
+
+@pytest.fixture
+async def deleted_user():
+    return await UserFactory.create_async(
+        deletes_at = datetime.now(timezone.utc) - timedelta(days=1)
+    )
+
+@pytest.fixture
+async def expired_token(test_user):
+    return await RefreshFactory.create_async(
+        user_public_id = test_user.public_id,
+        expired_at = datetime.now(timezone.utc) - timedelta(days=1)
+    )
+
+@pytest.fixture
+async def old_rejected_invitation(test_user, test_project, test_project_user):
+    return await InvitationFactory.create_async(
+        project_public_id = test_project.project_public_id,
+        sender_public_id = test_user.public_id,
+        target_user_public_id = test_project_user.public_id,
+        user_role = UserRole.ADMIN,
+        status = InvitationStatus.REJECTED,
+        sent_at = datetime.now(timezone.utc) - timedelta(days=31)
+    )
+
+@pytest.fixture
+async def expired_invitation(test_user, test_project, test_project_user):
+    return await InvitationFactory.create_async(
+        project_public_id = test_project.project_public_id,
+        sender_public_id = test_user.public_id,
+        target_user_public_id = test_project_user.public_id,
+        user_role = UserRole.ADMIN,
+        status = InvitationStatus.PENDING,
+        expires_at = datetime.now(timezone.utc) - timedelta(days=1)
+    )

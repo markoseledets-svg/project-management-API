@@ -880,6 +880,7 @@ const apiGet = url => apiFetch(url);
 const apiPost = (url, body) => apiFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body !== undefined ? JSON.stringify(body) : undefined });
 const apiPatch = (url, body) => apiFetch(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: body !== undefined ? JSON.stringify(body) : undefined });
 const apiDel = url => apiFetch(url, { method: 'DELETE' });
+const unwrapItems = res => (Array.isArray(res) ? res : (res?.items ?? []));
 
 // ══ USER RENDERING ══
 function renderUser(u) {
@@ -1288,7 +1289,7 @@ async function doLogout() {
 // ══ NOTIFICATIONS / USER INVITATIONS ══
 async function loadUserInvitations() {
     try {
-        userInvitations = await apiGet(`${API}/projects/invitations/`) || [];
+        userInvitations = unwrapItems(await apiGet(`${API}/projects/invitations/`));
     } catch {
         userInvitations = [];
     }
@@ -1359,7 +1360,7 @@ async function rejectInvitation(invId) {
 
 // ══ PROJECTS ══
 async function loadProjects() {
-    projects = await apiGet(`${API}/projects/`) || [];
+    projects = unwrapItems(await apiGet(`${API}/projects/`));
     renderProjects();
     if (selectedProject) {
         const still = projects.find(p => p.project_public_id === selectedProject.project_public_id);
@@ -1391,7 +1392,7 @@ async function onProjectSelected() {
     await loadTasks();
     await loadProjectMembers();
     if (canManageMembers()) {
-        try { projectInvitations = await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`) || []; } catch { projectInvitations = []; }
+        try { projectInvitations = unwrapItems(await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`)); } catch { projectInvitations = []; }
     } else {
         projectInvitations = [];
     }
@@ -1488,7 +1489,7 @@ function closeCtx() { document.getElementById('ctx-menu').classList.remove('open
 async function loadProjectMembers() {
     if (!selectedProject) return [];
     try {
-        members = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`) || [];
+        members = unwrapItems(await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`));
     } catch(e) { members = []; toast(e.message, 'error'); }
     return members;
 }
@@ -1510,7 +1511,7 @@ async function submitAddUser() {
         await apiPost(`${API}/projects/send-invitation/${selectedProject.project_public_id}`, { email, user_role: role });
         closeModals();
         if (canManageMembers()) {
-            try { projectInvitations = await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`) || []; } catch {}
+            try { projectInvitations = unwrapItems(await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`)); } catch {}
             renderProjectView();
         }
         toast('✉️ Invitation sent successfully!', 'success');
@@ -1587,7 +1588,7 @@ function selectAssigneeOption(containerId, hiddenInputId, userId, el) {
 // ══ TASKS ══
 async function loadTasks() {
     if (!selectedProject) return;
-    try { tasks = await apiGet(`${API}/projects/${selectedProject.project_public_id}/tasks/`) || []; } catch(e) { tasks = []; toast(e.message, 'error'); }
+    try { tasks = unwrapItems(await apiGet(`${API}/projects/${selectedProject.project_public_id}/tasks/`)); } catch(e) { tasks = []; toast(e.message, 'error'); }
 }
 function renderProjectView() {
     const p = selectedProject;
@@ -1635,7 +1636,7 @@ function renderProjectView() {
 async function switchViewTab(tab) {
     activeTab = tab;
     if (tab === 'invitations' && canManageMembers()) {
-        try { projectInvitations = await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`) || []; } catch { projectInvitations = []; }
+        try { projectInvitations = unwrapItems(await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`)); } catch { projectInvitations = []; }
     }
     renderProjectView();
 }
@@ -1807,7 +1808,7 @@ async function revokeInvitation(invId) {
     try {
         await apiPatch(`${API}/projects/revoke-invitation/${selectedProject.project_public_id}/${invId}`);
         toast('Invitation revoked', 'success');
-        projectInvitations = await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`) || [];
+        projectInvitations = unwrapItems(await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`));
         renderProjectView();
     } catch(e) {
         toast(e.message, 'error');

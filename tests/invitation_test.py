@@ -17,7 +17,10 @@ async def test_get_project_invites(test_client, test_project, auth_cookies):
         cookies=auth_cookies
         )
     assert invitations_response.status_code == 200
-    assert invitations_response.json() is not False
+    data = invitations_response.json()
+    assert isinstance(data['items'], list)
+    assert data['page'] == 1
+    assert data['has_prev'] == data['has_next'] == False
 
 @pytest.mark.asyncio
 async def test_get_user_invites(test_client, project_user_cookies):
@@ -26,7 +29,22 @@ async def test_get_user_invites(test_client, project_user_cookies):
         cookies=project_user_cookies
     )
     assert invitations_response.status_code == 200
-    assert invitations_response.json() is not False
+    data = invitations_response.json()
+    assert isinstance(data['items'], list)
+    assert data['page'] == 1
+    assert data['has_prev'] == data['has_next'] == False
+
+@pytest.mark.asyncio
+async def test_invalid_invitation_pagination_params(test_client, test_project, auth_cookies, project_user_cookies):
+    invalid_limit = await test_client.get(
+        f"/api/v1/projects/invitations-dashboard/{test_project.project_public_id}?page=1&limit=99999",
+        cookies=auth_cookies
+    )
+    invalid_page = await test_client.get(
+        "/api/v1/projects/invitations/?page=0&limit=20",
+        cookies=project_user_cookies
+    )
+    assert invalid_limit.status_code == invalid_page.status_code == 422
 
 @pytest.mark.asyncio
 async def test_revoke_invitation(test_client, test_project, auth_cookies, test_invitation):

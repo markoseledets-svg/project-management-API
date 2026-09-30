@@ -18,8 +18,46 @@ async def test_get_projects(test_client, auth_cookies, test_project):
        cookies=auth_cookies
     )
     assert get_response.status_code == 200
-    project_list = get_response.json()
-    assert len(project_list) > 0
+    response_data = get_response.json()
+    assert len(response_data['items']) > 0
+    assert response_data['has_prev'] == response_data['has_next'] == False
+
+@pytest.mark.asyncio
+async def test_get_pagination_response(test_client, auth_cookies):
+    get_response = await test_client.get(
+        "/api/v1/projects/?page=2&limit=10",
+        cookies=auth_cookies
+    )
+    assert get_response.status_code == 200
+    response_data = get_response.json()
+    assert response_data['page'] == 2
+    assert response_data['limit'] == 10
+    assert isinstance(response_data['items'], list)
+
+@pytest.mark.asyncio
+async def test_get_empty_pagination_response(test_client, auth_cookies):
+    get_response = await test_client.get(
+        "/api/v1/projects/",
+       cookies=auth_cookies
+    )
+    assert get_response.status_code == 200
+    response_data = get_response.json()
+    assert isinstance(response_data['items'], list)
+    assert response_data['has_prev'] == response_data['has_next'] == False
+
+@pytest.mark.asyncio
+async def test_invalid_pagination_params(test_client, auth_cookies):
+    invalid_limit = await test_client.get(
+        "/api/v1/projects/?page=1&limit=99999",
+       cookies=auth_cookies
+    )
+    invalid_page = await test_client.get(
+        "/api/v1/projects/?page=0&limit=20",
+       cookies=auth_cookies
+    )
+    assert invalid_limit.status_code == invalid_page.status_code == 422
+
+
 
 @pytest.mark.asyncio
 async def test_project_update(test_client, auth_cookies, test_project):
@@ -40,7 +78,22 @@ async def test_get_project_members(test_client, auth_cookies, test_project):
         cookies=auth_cookies
     )
     assert get_response.status_code == 200
-    assert get_response.json() is not None
+    response_data = get_response.json()
+    assert isinstance(response_data['items'], list)
+    assert len(response_data['items']) > 0
+    assert response_data['page'] == 1
+
+@pytest.mark.asyncio
+async def test_project_members_invalid_pagination(test_client, auth_cookies, test_project):
+    invalid_limit = await test_client.get(
+        f"/api/v1/projects/members/{test_project.project_public_id}?page=1&limit=99999",
+        cookies=auth_cookies
+    )
+    invalid_page = await test_client.get(
+        f"/api/v1/projects/members/{test_project.project_public_id}?page=0&limit=20",
+        cookies=auth_cookies
+    )
+    assert invalid_limit.status_code == invalid_page.status_code == 422
 
 @pytest.mark.asyncio
 async def test_change_role_to_owner(test_client, auth_cookies, test_project, test_project_member):

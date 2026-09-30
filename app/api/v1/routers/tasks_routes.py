@@ -5,6 +5,7 @@ from typing import List
 from schemas.task_schemas import PostTaskModel,UpdateTaskModel, TaskWithAssigneeModel, GetTaskModel
 from schemas.login_schemas import UserGetModel
 from app.api.dependencies.db_dependencies import get_current_user, TaskServiceDep
+from schemas.pagination_schemas import PaginationRequest, PaginationResponse
 router = APIRouter(tags=["Tasks"])
 
 @router.post("/", status_code=201)
@@ -16,13 +17,18 @@ async def add_task(
                     ):
     return await service.add_new_task(task_data, user.public_id, project_public_id)
 
-@router.get("/", response_model=List[TaskWithAssigneeModel])
+@router.get("/", response_model=PaginationResponse[TaskWithAssigneeModel])
 async def get_tasks_with_assignee(
                         service: TaskServiceDep,
                         project_public_id: uuid.UUID,
+                        pagination_data: PaginationRequest = Depends(),
                         user: UserGetModel = Depends(get_current_user)
                         ):
-    return await service.get_curr_user_project_tasks(user.public_id, project_public_id)
+    return await service.get_curr_user_project_tasks(
+        user.public_id, 
+        project_public_id,
+        pagination_data
+        )
 
 @router.patch("/{task_public_id}", response_model=GetTaskModel)
 async def update_user_task(

@@ -9,6 +9,7 @@ from schemas.invitation_schemas import (
     InvitationDashboardModel,
     InvitationNotificationModel
     )
+from schemas.pagination_schemas import PaginationRequest, PaginationResponse
 
 router = APIRouter(tags=["invitations"])
 
@@ -26,23 +27,26 @@ async def send_new_invitation(
         invitation_data.user_role
     )
 
-@router.get("/invitations-dashboard/{project_public_id}", response_model=List[InvitationDashboardModel])
+@router.get("/invitations-dashboard/{project_public_id}", response_model=PaginationResponse[InvitationDashboardModel])
 async def get_invitation_dashboard(
     project_public_id:UUID,
     service: InvitationServiceDep,
+    pagination_data: PaginationRequest = Depends(),
     user: UserGetModel = Depends(get_current_user)
     ):
     return await service.get_project_invitation(
         user.public_id,
-        project_public_id
+        project_public_id,
+        pagination_data
     )
 
-@router.get("/invitations/", response_model=List[InvitationNotificationModel])
+@router.get("/invitations/", response_model=PaginationResponse[InvitationNotificationModel])
 async def get_curr_user_invitations(
     service:InvitationServiceDep,
+    pagination_data: PaginationRequest = Depends(),
     user: UserGetModel = Depends(get_current_user)
     ):
-    return await service.get_user_invitations(user.public_id)
+    return await service.get_user_invitations(user.public_id, pagination_data)
 
 @router.patch("/accept-invitation/{invitation_public_id}", status_code=204)
 async def invitation_accept(

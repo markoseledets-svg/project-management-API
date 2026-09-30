@@ -8,7 +8,7 @@ from schemas.task_schemas import PostTaskModel, UpdateTaskModel,GetTaskModel
 from typing import Optional,List
 from core.exceptions import NotFoundError, ForbiddenError, ConflictError
 from services.permission_check import PermissionService
-
+from schemas.pagination_schemas import PaginationResponse, PaginationRequest
 class TaskService:
     def __init__(
             self,
@@ -51,7 +51,8 @@ class TaskService:
     async def get_curr_user_project_tasks(
                                     self,
                                     curr_user_id:uuid.UUID,
-                                    project_public_id:uuid.UUID
+                                    project_public_id:uuid.UUID,
+                                    pagination_data: PaginationRequest
                                     )-> Optional[List[GetTaskModel]]:
         await self.permission_service.verify_user_role(
                                     curr_user_id,
@@ -64,8 +65,22 @@ class TaskService:
                                                    ),
                                     check_active=False
                                     )
-        return await self.task_repo.get_user_tasks_request(project_public_id)
-        
+        total_count = await self.task_repo.count_tasks(project_public_id)
+        if total_count > 0:
+            tasks_data = await self.task_repo.get_user_tasks_request(
+                project_public_id,
+                pagination_data.page,
+                pagination_data.limit
+                )
+        else:
+            tasks_data = []
+        return PaginationResponse.create(
+                items=tasks_data,
+                total_count=total_count,
+                page=pagination_data.page,
+                limit=pagination_data.limit
+            )
+            
     async def get_task_by_id(
         self, 
         task_public_id:uuid.UUID,

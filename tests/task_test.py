@@ -22,12 +22,40 @@ async def test_add_empty_task(test_client, test_project, auth_cookies):
     assert task_response.status_code == 422
 
 @pytest.mark.asyncio
-async def test_get_user_tasks(test_client, test_project, auth_cookies):
+async def test_get_user_tasks(test_client, test_project, auth_cookies, test_task):
     get_tasks_response = await test_client.get(
         f"/api/v1/projects/{test_project.project_public_id}/tasks/",
         cookies=auth_cookies
     )
     assert get_tasks_response.status_code == 200
+    response_data = get_tasks_response.json()
+    assert isinstance(response_data['items'], list)
+    assert len(response_data['items']) > 0
+    assert response_data['has_prev'] == response_data['has_next'] == False
+
+@pytest.mark.asyncio
+async def test_get_tasks_pagination_response(test_client, test_project, auth_cookies, test_task):
+    get_tasks_response = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?page=2&limit=10",
+        cookies=auth_cookies
+    )
+    assert get_tasks_response.status_code == 200
+    response_data = get_tasks_response.json()
+    assert response_data['page'] == 2
+    assert response_data['limit'] == 10
+    assert isinstance(response_data['items'], list)
+
+@pytest.mark.asyncio
+async def test_invalid_tasks_pagination_params(test_client, test_project, auth_cookies):
+    invalid_limit = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?page=1&limit=99999",
+        cookies=auth_cookies
+    )
+    invalid_page = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?page=0&limit=20",
+        cookies=auth_cookies
+    )
+    assert invalid_limit.status_code == invalid_page.status_code == 422
 
 @pytest.mark.asyncio
 async def test_task_update(test_client, test_project, auth_cookies, test_task):

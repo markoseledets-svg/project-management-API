@@ -1,6 +1,6 @@
 from typing import Generic, TypeVar, Type, Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func, inspect
 
 from database.db_model import Base
 ModelType = TypeVar("ModelType", bound=Base)
@@ -33,3 +33,8 @@ class BaseRepository(Generic[ModelType]):
     
     async def delete(self, db_obj:ModelType) -> None:
         await self.session.delete(db_obj)
+    
+    async def get_row_count_by(self, **kwargs: Any) -> int:
+        return await self.session.scalar(
+            select(func.count()).select_from(self.model).filter_by(**kwargs)
+        )

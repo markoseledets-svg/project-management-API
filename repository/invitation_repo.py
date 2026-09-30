@@ -14,7 +14,12 @@ class InvitationRepository(BaseRepository[InvitationModel]):
     async def get_invitation_by_id(self, invitation_public_id:UUID) -> Optional[InvitationModel]:
         return await self.get_by(invitation_public_id=invitation_public_id)
 
-    async def get_users_invitations(self, user_public_id:UUID) -> Optional[List[InvitationNotificationModel]]:
+    async def get_users_invitations(
+        self, 
+        user_public_id: UUID,
+        page: int,
+        limit: int
+    ) -> Optional[List[InvitationNotificationModel]]:
         SenderModel = aliased(UserModel)
         invitation_obj = await self.session.execute(
             select(
@@ -33,10 +38,23 @@ class InvitationRepository(BaseRepository[InvitationModel]):
                     InvitationModel.status == InvitationStatus.PENDING
             )
             .order_by(InvitationModel.sent_at.desc())
+            .limit(limit)
+            .offset((page - 1) * limit)
         )
         return invitation_obj.mappings().all()
+
+    async def count_users_invitations(self, user_public_id: UUID) -> int:
+        return await self.get_row_count_by(
+            target_user_public_id=user_public_id,
+            status=InvitationStatus.PENDING
+        )
     
-    async def get_project_invitations(self, project_public_id:UUID) -> Optional[List[InvitationDashboardModel]]:
+    async def get_project_invitations(
+        self, 
+        project_public_id: UUID,
+        page: int,
+        limit: int
+    ) -> Optional[List[InvitationDashboardModel]]:
         SenderModel = aliased(UserModel)
         TargetUser = aliased(UserModel)
         invitation_obj = await self.session.execute(
@@ -53,8 +71,13 @@ class InvitationRepository(BaseRepository[InvitationModel]):
             .join(TargetUser, TargetUser.public_id == InvitationModel.target_user_public_id)
             .where(InvitationModel.project_public_id == project_public_id)
             .order_by(InvitationModel.sent_at.desc())
+            .limit(limit)
+            .offset((page - 1) * limit)
         )
         return invitation_obj.mappings().all()
+
+    async def count_project_invitations(self, project_public_id: UUID) -> int:
+        return await self.get_row_count_by(project_public_id=project_public_id)
 
     async def update_if_pending(
         self, 

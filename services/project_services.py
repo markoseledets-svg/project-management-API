@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid6 import uuid7, UUID
+from pydantic import ValidationError
 
 from repository.projects_repo import ProjectsRepository, UserProjectRepository
 from repository.user_repo import UserRepository
@@ -14,7 +15,7 @@ from schemas.project_schemas import (
 from typing import Optional, List
 from core.exceptions import NotFoundError, GoneError, ConflictError, ForbiddenError, DataValidationError
 from services.permission_check import PermissionService
-
+from schemas.pagination_schemas import PaginationRequest, PaginationResponse
 
 class ProjectService:
     def __init__(
@@ -45,10 +46,25 @@ class ProjectService:
     
     async def get_curr_user_projects(
             self,
-            curr_user_id:  UUID
+            curr_user_id:  UUID,
+            pagination_data: PaginationRequest
     ) -> Optional[ProjectWithRoleGetModel]:
-        return await self.project_repo.get_user_projects_with_roles(curr_user_id)
-    
+        total_count = await self.user_project_repo.count_user_projects(curr_user_id)
+        if total_count > 0:
+            projects_data = await self.project_repo.get_user_projects_with_roles(
+                curr_user_id,
+                pagination_data.limit,
+                pagination_data.page
+                )
+        else:
+            projects_data = []
+        return PaginationResponse.create(
+                page=pagination_data.page,
+                limit=pagination_data.limit,
+                items=projects_data,
+                total_count=total_count
+            )
+
     async def get_project_by_id(self, project_public_id: UUID) -> Optional[ProjectModel]:
         return await self.project_repo.get_project_by_id_request(project_public_id)
     
@@ -131,15 +147,30 @@ class ProjectService:
     async def get_members_list(
                                 self,
                                 user_public_id:  UUID,
-                                project_public_id:  UUID
-                                ) -> Optional[List[GetUserDataWithRole]]:
+                                project_public_id:  UUID,
+                                pagination_data: PaginationRequest
+                                ) -> PaginationResponse[GetUserDataWithRole]:
         await self.permission_service.verify_user_role(
             user_public_id,
             project_public_id,
             allowed_roles=(UserRole.OWNER, UserRole.ADMIN),
             check_active=False
         )
-        return await self.user_project_repo.get_user_data_with_roles(project_public_id)
+        total_count = await self.user_project_repo.count_project_users(project_public_id)
+        if total_count > 0:
+            members_data = await self.user_project_repo.get_user_data_with_roles(
+                project_public_id,
+                page=pagination_data.page,
+                limit=pagination_data.limit
+            )
+        else:
+            members_data = []
+        return PaginationResponse.create(
+            items=members_data,
+            total_count=total_count,
+            page=pagination_data.page,
+            limit=pagination_data.limit
+        )
 
     async def delete_user_from_project(
                                         self,

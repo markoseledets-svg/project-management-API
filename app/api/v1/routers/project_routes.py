@@ -14,15 +14,16 @@ from schemas.project_schemas import (
     UpdateUserRole,
     )
 from schemas.login_schemas import UserGetModel
-
+from schemas.pagination_schemas import PaginationRequest, PaginationResponse
 router = APIRouter(tags=["Projects"])
 
-@router.get("/", response_model=List[ProjectWithRoleGetModel])
+@router.get("/", response_model=PaginationResponse[ProjectWithRoleGetModel])
 async def get_user_projects(
                             service: ProjectServiceDep,
+                            pagination_data: PaginationRequest = Depends(),
                             user: UserGetModel = Depends(get_current_user)
                             ):
-    return await service.get_curr_user_projects(user.public_id)
+    return await service.get_curr_user_projects(user.public_id, pagination_data)
 
 @router.post("/add", status_code=201)
 async def add_project(
@@ -77,15 +78,17 @@ async def hard_delete_project(
         project_name
     )
                                            
-@router.get("/members/{project_public_id}", response_model=List[GetUserDataWithRole])
+@router.get("/members/{project_public_id}", response_model=PaginationResponse[GetUserDataWithRole])
 async def get_project_members(
                                 service: ProjectServiceDep,
                                 project_public_id: uuid.UUID,
+                                pagination_data: PaginationRequest = Depends(),
                                 user: UserGetModel = Depends(get_current_user)
                             ):
     return await service.get_members_list(
         user.public_id,
-        project_public_id
+        project_public_id,
+        pagination_data
     )
 
 @router.delete("/delete-member/{project_public_id}/{target_user_public_id}", status_code=204)

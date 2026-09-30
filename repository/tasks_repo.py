@@ -23,11 +23,18 @@ class TasksRepository(BaseRepository[TaskModel]):
         )
     
     
-    async def get_user_tasks_request(self,project_public_id:uuid.UUID) -> Optional[List[TaskWithAssigneeModel]]:
+    async def get_user_tasks_request(
+        self,
+        project_public_id: uuid.UUID,
+        page: int,
+        limit: int
+        ) -> Optional[List[TaskWithAssigneeModel]]:
         tasks = await self.session.execute(
             select(TaskModel, UserModel.email)
             .outerjoin(UserModel, TaskModel.assignee_id == UserModel.public_id)
             .where(TaskModel.project_public_id == project_public_id)
+            .limit(limit)
+            .offset((page-1)*limit)
         )
         task_list = []
         for task, email in tasks.all():
@@ -42,3 +49,5 @@ class TasksRepository(BaseRepository[TaskModel]):
             task_list.append(task_i)
         return task_list
 
+    async def count_tasks(self, project_public_id: uuid.UUID) -> int:
+        return await self.get_row_count_by(project_public_id=project_public_id)

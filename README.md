@@ -236,12 +236,13 @@ alembic downgrade -1
 - [x] Safe hard-deletion with name confirmation
 - [x] Task status processing (`TODO` → `IN_PROGRESS` → `REVIEW` → `COMPLETED`)
 - [x] Task assignees
-- [ ] Task priority, tags, and filtering/sorting
-
+- [ ] Pafination, sorting, search
 #### Infrastructure
-- [x] Redis caching, rate limiting, and session blacklisting
+- [ ] Redis caching, 
+- [x] Rate limiting, and session blacklisting
 - [x] Full automated test suite (75 unit & integration tests)
-- [ ] Background workers for automated expired token & soft-deleted account cleanup
-- [ ] Production CI/CD pipeline and cloud deployment
+- [x] Background workers for automated expired token & soft-deleted account cleanup
+- [x] Production CI/CD pipeline 
+- [ ] Cloud deployment
 
 

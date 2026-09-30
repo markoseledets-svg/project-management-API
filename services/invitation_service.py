@@ -10,6 +10,7 @@ from repository.projects_repo import UserProjectRepository
 from services.permission_check import PermissionService
 from services.project_services import ProjectService
 from schemas.invitation_schemas import InvitationNotificationModel, InvitationDashboardModel
+from schemas.pagination_schemas import PaginationRequest, PaginationResponse
 from database.db_model import UserRole, InvitationModel, InvitationStatus
 from core.exceptions import NotFoundError, ConflictError, GoneError
 
@@ -25,20 +26,50 @@ class InvitationService:
     async def get_user_invitations(
         self, 
         user_public_id: UUID,
-        ) -> List[InvitationNotificationModel]:
-        return await self.invitation_repo.get_users_invitations(user_public_id)
+        pagination_data: PaginationRequest
+        ) -> PaginationResponse[InvitationNotificationModel]:
+        total_count = await self.invitation_repo.count_users_invitations(user_public_id)
+        if total_count > 0:
+            invitations_data = await self.invitation_repo.get_users_invitations(
+                user_public_id,
+                page=pagination_data.page,
+                limit=pagination_data.limit
+            )
+        else:
+            invitations_data = []
+        return PaginationResponse.create(
+            items=invitations_data,
+            total_count=total_count,
+            page=pagination_data.page,
+            limit=pagination_data.limit
+        )
 
     async def get_project_invitation(
         self, 
         user_public_id:UUID,
-        project_public_id:UUID
-        ) -> List[InvitationDashboardModel]:
+        project_public_id:UUID,
+        pagination_data: PaginationRequest
+        ) -> PaginationResponse[InvitationDashboardModel]:
         await self.permission_service.verify_user_role(
             user_public_id,
             project_public_id,
             allowed_roles=(UserRole.ADMIN, UserRole.OWNER,)
         )
-        return await self.invitation_repo.get_project_invitations(project_public_id)
+        total_count = await self.invitation_repo.count_project_invitations(project_public_id)
+        if total_count > 0:
+            invitations_data = await self.invitation_repo.get_project_invitations(
+                project_public_id,
+                page=pagination_data.page,
+                limit=pagination_data.limit
+            )
+        else:
+            invitations_data = []
+        return PaginationResponse.create(
+            items=invitations_data,
+            total_count=total_count,
+            page=pagination_data.page,
+            limit=pagination_data.limit
+        )
     
     async def send_invitation(
         self,

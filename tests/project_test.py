@@ -186,3 +186,24 @@ async def test_user_self_delete(test_client, auth_cookies, test_project, test_pr
         cookies = auth_cookies
     )
     assert delete_user_response.status_code == 204
+
+@pytest.mark.asyncio
+async def test_sort_projects_by_name(test_client, auth_cookies, sort_projects):
+    res_asc = await test_client.get("/api/v1/projects/?sort_by=project_name&sort_order=asc", cookies=auth_cookies)
+    assert res_asc.status_code == 200
+    names_asc = [p["project_name"] for p in res_asc.json()["items"]]
+    assert names_asc == sorted(names_asc)
+
+    res_desc = await test_client.get("/api/v1/projects/?sort_by=project_name&sort_order=desc", cookies=auth_cookies)
+    assert res_desc.status_code == 200
+    names_desc = [p["project_name"] for p in res_desc.json()["items"]]
+    assert names_desc == sorted(names_desc, reverse=True)
+
+@pytest.mark.asyncio
+async def test_sort_projects_invalid_params(test_client, auth_cookies):
+    res_invalid_field = await test_client.get("/api/v1/projects/?sort_by=invalid_field", cookies=auth_cookies)
+    assert res_invalid_field.status_code == 422
+
+    res_invalid_order = await test_client.get("/api/v1/projects/?sort_order=invalid_order", cookies=auth_cookies)
+    assert res_invalid_order.status_code == 422
+

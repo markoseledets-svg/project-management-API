@@ -437,7 +437,19 @@
         </div>
     </div>
     <div class="projects-section">
-        <div class="section-label"><span>Projects</span><button onclick="openModal('project-create-modal')" title="New project">＋</button></div>
+        <div class="section-label">
+            <span>Projects</span>
+            <div style="display:flex;gap:0.35rem;align-items:center;">
+                <select id="project-sort-select" onchange="changeProjectSort(this.value)" title="Sort projects" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-soft);font-size:0.7rem;padding:0.15rem 0.35rem;cursor:pointer;outline:none;">
+                    <option value="updated_at:desc" style="background:var(--surface);color:var(--text);">🕒 Recent</option>
+                    <option value="created_at:desc" style="background:var(--surface);color:var(--text);">✨ Newest</option>
+                    <option value="created_at:asc" style="background:var(--surface);color:var(--text);">⏳ Oldest</option>
+                    <option value="project_name:asc" style="background:var(--surface);color:var(--text);">🔤 A-Z</option>
+                    <option value="project_name:desc" style="background:var(--surface);color:var(--text);">🔤 Z-A</option>
+                </select>
+                <button onclick="openModal('project-create-modal')" title="New project">＋</button>
+            </div>
+        </div>
         <div class="project-list" id="project-list"></div>
     </div>
     <div class="sidebar-footer">
@@ -815,6 +827,10 @@ let projectInvitations = [];
 let taskFilter = 'all';
 let activeTab = 'tasks'; // 'tasks' | 'members' | 'invitations'
 let userProviders = []; // ['local', 'google', 'github']
+let projectSortBy = 'updated_at';
+let projectSortOrder = 'desc';
+let taskSortBy = 'created_at';
+let taskSortOrder = 'desc';
 
 // ══ Cookie helpers ══
 function getCookie(name) {
@@ -1360,13 +1376,19 @@ async function rejectInvitation(invId) {
 
 // ══ PROJECTS ══
 async function loadProjects() {
-    projects = unwrapItems(await apiGet(`${API}/projects/`));
+    projects = unwrapItems(await apiGet(`${API}/projects/?sort_by=${projectSortBy}&sort_order=${projectSortOrder}`));
     renderProjects();
     if (selectedProject) {
         const still = projects.find(p => p.project_public_id === selectedProject.project_public_id);
         if (still) { selectedProject = still; await onProjectSelected(); }
         else { selectedProject = null; renderWelcome(); }
     } else { renderWelcome(); }
+}
+async function changeProjectSort(val) {
+    const [by, order] = val.split(':');
+    projectSortBy = by;
+    projectSortOrder = order;
+    await loadProjects();
 }
 function renderProjects() {
     const list = document.getElementById('project-list');
@@ -1588,7 +1610,16 @@ function selectAssigneeOption(containerId, hiddenInputId, userId, el) {
 // ══ TASKS ══
 async function loadTasks() {
     if (!selectedProject) return;
-    try { tasks = unwrapItems(await apiGet(`${API}/projects/${selectedProject.project_public_id}/tasks/`)); } catch(e) { tasks = []; toast(e.message, 'error'); }
+    try { 
+        tasks = unwrapItems(await apiGet(`${API}/projects/${selectedProject.project_public_id}/tasks/?sort_by=${taskSortBy}&sort_order=${taskSortOrder}`)); 
+    } catch(e) { tasks = []; toast(e.message, 'error'); }
+}
+async function changeTaskSort(val) {
+    const [by, order] = val.split(':');
+    taskSortBy = by;
+    taskSortOrder = order;
+    await loadTasks();
+    renderTasksTab();
 }
 function renderProjectView() {
     const p = selectedProject;
@@ -1645,13 +1676,22 @@ function renderTasksTab() {
     const container = document.getElementById('tab-content');
     const labels = { all: 'All Tasks', todo: '⏳ Todo', in_progress: '🔄 In Progress', review: '👁️ In Review', completed: '✅ Completed' };
     let html = `<div class="content-header"><div class="content-title">${labels[taskFilter]}</div>
-        <div class="filter-pills">
-            <button class="filter-pill ${taskFilter==='all'?'active':''}" onclick="setFilter('all')">All</button>
-            <button class="filter-pill ${taskFilter==='todo'?'active':''}" onclick="setFilter('todo')">Todo</button>
-            <button class="filter-pill ${taskFilter==='in_progress'?'active':''}" onclick="setFilter('in_progress')">Progress</button>
-            <button class="filter-pill ${taskFilter==='review'?'active':''}" onclick="setFilter('review')">Review</button>
-            <button class="filter-pill ${taskFilter==='completed'?'active':''}" onclick="setFilter('completed')">Done</button>
-        </div></div><div class="tasks-grid" id="tasks-grid"></div>`;
+        <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
+            <div class="filter-pills">
+                <button class="filter-pill ${taskFilter==='all'?'active':''}" onclick="setFilter('all')">All</button>
+                <button class="filter-pill ${taskFilter==='todo'?'active':''}" onclick="setFilter('todo')">Todo</button>
+                <button class="filter-pill ${taskFilter==='in_progress'?'active':''}" onclick="setFilter('in_progress')">Progress</button>
+                <button class="filter-pill ${taskFilter==='review'?'active':''}" onclick="setFilter('review')">Review</button>
+                <button class="filter-pill ${taskFilter==='completed'?'active':''}" onclick="setFilter('completed')">Done</button>
+            </div>
+            <select class="task-sort-select" onchange="changeTaskSort(this.value)" title="Sort tasks" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-soft);font-size:0.75rem;padding:0.25rem 0.5rem;cursor:pointer;outline:none;">
+                <option value="created_at:desc" ${taskSortBy==='created_at'&&taskSortOrder==='desc'?'selected':''} style="background:var(--surface);color:var(--text);">✨ Newest first</option>
+                <option value="created_at:asc" ${taskSortBy==='created_at'&&taskSortOrder==='asc'?'selected':''} style="background:var(--surface);color:var(--text);">⏳ Oldest first</option>
+                <option value="task_name:asc" ${taskSortBy==='task_name'&&taskSortOrder==='asc'?'selected':''} style="background:var(--surface);color:var(--text);">🔤 Name A-Z</option>
+                <option value="task_name:desc" ${taskSortBy==='task_name'&&taskSortOrder==='desc'?'selected':''} style="background:var(--surface);color:var(--text);">🔤 Name Z-A</option>
+            </select>
+        </div>
+    </div><div class="tasks-grid" id="tasks-grid"></div>`;
     container.innerHTML = html;
     renderTaskCards();
 }

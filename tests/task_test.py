@@ -175,3 +175,35 @@ async def test_self_assign_already_taken(test_client, test_project, auth_cookies
         cookies=auth_cookies
     )
     assert resp.status_code == 403
+
+@pytest.mark.asyncio
+async def test_sort_tasks_by_name(test_client, test_project, auth_cookies, sort_tasks):
+    res_asc = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?sort_by=task_name&sort_order=asc",
+        cookies=auth_cookies
+    )
+    assert res_asc.status_code == 200
+    names_asc = [t["task_name"] for t in res_asc.json()["items"]]
+    assert names_asc == sorted(names_asc)
+
+    res_desc = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?sort_by=task_name&sort_order=desc",
+        cookies=auth_cookies
+    )
+    assert res_desc.status_code == 200
+    names_desc = [t["task_name"] for t in res_desc.json()["items"]]
+    assert names_desc == sorted(names_desc, reverse=True)
+
+@pytest.mark.asyncio
+async def test_sort_tasks_invalid_params(test_client, test_project, auth_cookies):
+    res_invalid_field = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?sort_by=invalid_field",
+        cookies=auth_cookies
+    )
+    assert res_invalid_field.status_code == 422
+
+    res_invalid_order = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?sort_order=invalid_order",
+        cookies=auth_cookies
+    )
+    assert res_invalid_order.status_code == 422

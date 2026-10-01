@@ -275,3 +275,39 @@ async def expired_invitation(test_user, test_project, test_project_user):
         status = InvitationStatus.PENDING,
         expires_at = datetime.now(timezone.utc) - timedelta(days=1)
     )
+
+@pytest.fixture
+async def sort_projects(test_user):
+    project_a = await ProjectFactory.create_async(
+        project_name = 'A_project',
+        status = ProjectStatus.ACTIVE
+        )
+    await UserProjectFactory.create_async(
+        user_public_id = test_user.public_id,
+        project_public_id = project_a.project_public_id,
+        user_role = UserRole.OWNER,
+    )
+    project_b = await ProjectFactory.create_async(
+        project_name = 'B_project',
+        status = ProjectStatus.ACTIVE
+        )
+    await UserProjectFactory.create_async(
+        user_public_id = test_user.public_id,
+        project_public_id = project_b.project_public_id,
+        user_role = UserRole.OWNER,
+    )
+
+@pytest.fixture
+async def sort_tasks(test_project):
+    await TaskFactory.create_async(
+        task_name = 'A_task',
+        project_public_id = test_project.project_public_id,
+        assignee_id = None,
+        status = TaskStatus.TODO
+    )
+    await TaskFactory.create_async(
+        task_name = 'B_task',
+        project_public_id = test_project.project_public_id,
+        assignee_id = None,
+        status = TaskStatus.TODO
+    )

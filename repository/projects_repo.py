@@ -1,11 +1,13 @@
 from sqlalchemy import select, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import UnaryExpression
 from uuid import UUID 
 
 from typing import List,Optional
 from repository.base_repo import BaseRepository
 from database.db_model import UserProjectRelation, ProjectModel, UserModel
 from schemas.project_schemas import ProjectWithRoleGetModel, GetUserDataWithRole
+from schemas.sort_schemas import ProjectSortField, SortOrder
 
 class ProjectsRepository(BaseRepository[ProjectModel]):
     def __init__(self, session:AsyncSession):
@@ -13,17 +15,35 @@ class ProjectsRepository(BaseRepository[ProjectModel]):
     
     async def get_project_by_id_request(self,project_public_id: UUID) -> Optional[ProjectModel]:
         return await self.get_by(project_public_id = project_public_id)
+    
+    def _get_sort_params(
+        self, 
+        sort_by: ProjectSortField, 
+        sort_order: SortOrder
+        ) -> UnaryExpression:
+        SORT_MAP = {
+            ProjectSortField.CREATED_AT: ProjectModel.created_at,
+            ProjectSortField.UPDATED_AT: ProjectModel.updated_at,
+            ProjectSortField.PROJECT_NAME: ProjectModel.project_name,
+        }
+        column = SORT_MAP.get(sort_by, ProjectModel.updated_at)
+        order_expr = column.desc() if sort_order == SortOrder.DESC else column.asc()
+        return order_expr
 
     async def get_user_projects_with_roles(
         self,
         user_public_id: UUID,
         limit: int,
-        page: int
+        page: int,
+        sort_by: ProjectSortField,
+        sort_order: SortOrder
         ) -> Optional[List[ProjectWithRoleGetModel]]:
+        order_by = self._get_sort_params(sort_by, sort_order)
         projects_with_roles_obj = await self.session.execute(
             select(ProjectModel, UserProjectRelation.user_role)
             .join(UserProjectRelation, ProjectModel.project_public_id == UserProjectRelation.project_public_id)
             .where(UserProjectRelation.user_public_id == user_public_id)
+            .order_by(order_by, ProjectModel.project_public_id.desc())
             .limit(limit)
             .offset((page-1)*limit)
         )

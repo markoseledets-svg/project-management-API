@@ -9,6 +9,8 @@ from typing import Optional,List
 from core.exceptions import NotFoundError, ForbiddenError, ConflictError
 from services.permission_check import PermissionService
 from schemas.pagination_schemas import PaginationResponse, PaginationRequest
+from schemas.sort_schemas import SortOrder, TaskSortField
+
 class TaskService:
     def __init__(
             self,
@@ -52,7 +54,9 @@ class TaskService:
                                     self,
                                     curr_user_id:uuid.UUID,
                                     project_public_id:uuid.UUID,
-                                    pagination_data: PaginationRequest
+                                    pagination_data: PaginationRequest,
+                                    sort_by: TaskSortField,
+                                    sort_order: SortOrder
                                     )-> Optional[List[GetTaskModel]]:
         await self.permission_service.verify_user_role(
                                     curr_user_id,
@@ -70,7 +74,9 @@ class TaskService:
             tasks_data = await self.task_repo.get_user_tasks_request(
                 project_public_id,
                 pagination_data.page,
-                pagination_data.limit
+                pagination_data.limit,
+                sort_by,
+                sort_order
                 )
         else:
             tasks_data = []

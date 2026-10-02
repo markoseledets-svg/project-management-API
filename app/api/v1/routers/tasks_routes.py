@@ -7,6 +7,7 @@ from schemas.login_schemas import UserGetModel
 from app.api.dependencies.db_dependencies import get_current_user, TaskServiceDep
 from schemas.pagination_schemas import PaginationRequest, PaginationResponse
 from schemas.sort_schemas import SortOrder, TaskSortField
+from schemas.filter_schemas import TaskFilters
 
 router = APIRouter(tags=["Tasks"])
 
@@ -26,6 +27,7 @@ async def get_tasks_with_assignee(
                         sort_by: TaskSortField = TaskSortField.CREATED_AT,
                         sort_order: SortOrder = SortOrder.DESC,
                         pagination_data: PaginationRequest = Depends(),
+                        filters: TaskFilters = Depends(),
                         user: UserGetModel = Depends(get_current_user)
                         ):
     return await service.get_curr_user_project_tasks(
@@ -33,7 +35,8 @@ async def get_tasks_with_assignee(
         project_public_id,
         pagination_data,
         sort_by,
-        sort_order
+        sort_order,
+        filters
         )
 
 @router.patch("/{task_public_id}", response_model=GetTaskModel)

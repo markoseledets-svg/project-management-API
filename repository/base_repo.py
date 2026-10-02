@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, Type, Optional, Any
+from typing import Generic, TypeVar, Type, Optional, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, inspect
 
@@ -34,7 +34,7 @@ class BaseRepository(Generic[ModelType]):
     async def delete(self, db_obj:ModelType) -> None:
         await self.session.delete(db_obj)
     
-    async def get_row_count_by(self, **kwargs: Any) -> int:
-        return await self.session.scalar(
-            select(func.count()).select_from(self.model).filter_by(**kwargs)
-        )
+    async def get_row_count_by(self, predicates: List) -> int:
+        return (await self.session.scalar(
+            select(func.count()).select_from(self.model).where(*predicates)
+        )) or 0

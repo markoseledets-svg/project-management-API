@@ -13,6 +13,7 @@ from schemas.invitation_schemas import InvitationNotificationModel, InvitationDa
 from schemas.pagination_schemas import PaginationRequest, PaginationResponse
 from database.db_model import UserRole, InvitationModel, InvitationStatus
 from core.exceptions import NotFoundError, ConflictError, GoneError
+from schemas.filter_schemas import InvitationFilters
 
 class InvitationService:
     def __init__(self, session:AsyncSession):
@@ -48,19 +49,21 @@ class InvitationService:
         self, 
         user_public_id:UUID,
         project_public_id:UUID,
-        pagination_data: PaginationRequest
+        pagination_data: PaginationRequest,
+        filters: InvitationFilters
         ) -> PaginationResponse[InvitationDashboardModel]:
         await self.permission_service.verify_user_role(
             user_public_id,
             project_public_id,
             allowed_roles=(UserRole.ADMIN, UserRole.OWNER,)
         )
-        total_count = await self.invitation_repo.count_project_invitations(project_public_id)
+        total_count = await self.invitation_repo.count_project_invitations(project_public_id, filters)
         if total_count > 0:
             invitations_data = await self.invitation_repo.get_project_invitations(
                 project_public_id,
                 page=pagination_data.page,
-                limit=pagination_data.limit
+                limit=pagination_data.limit,
+                filters=filters
             )
         else:
             invitations_data = []

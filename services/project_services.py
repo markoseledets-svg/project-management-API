@@ -17,6 +17,7 @@ from core.exceptions import NotFoundError, GoneError, ConflictError, ForbiddenEr
 from services.permission_check import PermissionService
 from schemas.pagination_schemas import PaginationRequest, PaginationResponse
 from schemas.sort_schemas import ProjectSortField, SortOrder
+from schemas.filter_schemas import ProjectFilters
 
 class ProjectService:
     def __init__(
@@ -50,16 +51,18 @@ class ProjectService:
             curr_user_id:  UUID,
             pagination_data: PaginationRequest,
             sort_by: ProjectSortField,
-            sort_order: SortOrder
-    ) -> Optional[ProjectWithRoleGetModel]:
-        total_count = await self.user_project_repo.count_user_projects(curr_user_id)
+            sort_order: SortOrder,
+            filters: ProjectFilters
+    ) -> PaginationResponse[ProjectWithRoleGetModel]:
+        total_count = await self.project_repo.count_users_projects(curr_user_id, filters)
         if total_count > 0:
             projects_data = await self.project_repo.get_user_projects_with_roles(
                 curr_user_id,
                 pagination_data.limit,
                 pagination_data.page,
                 sort_by,
-                sort_order
+                sort_order,
+                filters
                 )
         else:
             projects_data = []

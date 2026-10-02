@@ -16,6 +16,8 @@ from schemas.project_schemas import (
 from schemas.login_schemas import UserGetModel
 from schemas.pagination_schemas import PaginationRequest, PaginationResponse
 from schemas.sort_schemas import ProjectSortField, SortOrder
+from schemas.filter_schemas import ProjectFilters
+
 router = APIRouter(tags=["Projects"])
 
 @router.get("/", response_model=PaginationResponse[ProjectWithRoleGetModel])
@@ -24,13 +26,15 @@ async def get_user_projects(
                             sort_order: SortOrder = SortOrder.DESC,
                             sort_by: ProjectSortField = ProjectSortField.UPDATED_AT,
                             pagination_data: PaginationRequest = Depends(),
+                            filters: ProjectFilters = Depends(),
                             user: UserGetModel = Depends(get_current_user)
                             ):
     return await service.get_curr_user_projects(
         user.public_id, 
         pagination_data,
         sort_by,
-        sort_order
+        sort_order,
+        filters
         )
 
 @router.post("/add", status_code=201)

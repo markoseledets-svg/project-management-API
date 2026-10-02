@@ -207,3 +207,96 @@ async def test_sort_tasks_invalid_params(test_client, test_project, auth_cookies
         cookies=auth_cookies
     )
     assert res_invalid_order.status_code == 422
+
+@pytest.mark.asyncio
+async def test_filter_tasks_by_status(test_client, test_project, auth_cookies, filter_tasks):
+    res_todo = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?status=todo",
+        cookies=auth_cookies
+    )
+    assert res_todo.status_code == 200
+    data_todo = res_todo.json()
+    assert len(data_todo["items"]) > 0
+    assert all(t["status"] == "todo" for t in data_todo["items"])
+
+    res_in_prog = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?status=in_progress",
+        cookies=auth_cookies
+    )
+    assert res_in_prog.status_code == 200
+    data_in_prog = res_in_prog.json()
+    assert len(data_in_prog["items"]) > 0
+    assert all(t["status"] == "in_progress" for t in data_in_prog["items"])
+
+@pytest.mark.asyncio
+async def test_filter_tasks_by_assignee(test_client, test_project, auth_cookies, filter_tasks):
+    res_assigned = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?has_assignee=true",
+        cookies=auth_cookies
+    )
+    assert res_assigned.status_code == 200
+    data_assigned = res_assigned.json()
+    assert len(data_assigned["items"]) > 0
+    assert all(t["assignee_id"] is not None for t in data_assigned["items"])
+
+    res_unassigned = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?has_assignee=false",
+        cookies=auth_cookies
+    )
+    assert res_unassigned.status_code == 200
+    data_unassigned = res_unassigned.json()
+    assert len(data_unassigned["items"]) > 0
+    assert all(t["assignee_id"] is None for t in data_unassigned["items"])
+
+@pytest.mark.asyncio
+async def test_filter_tasks_combined(test_client, test_project, auth_cookies, filter_tasks):
+    res = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?status=in_progress&has_assignee=true",
+        cookies=auth_cookies
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data["items"]) > 0
+    assert all(t["status"] == "in_progress" and t["assignee_id"] is not None for t in data["items"])
+
+@pytest.mark.asyncio
+async def test_filter_tasks_invalid_params(test_client, test_project, auth_cookies):
+    res_invalid_status = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?status=unknown_status",
+        cookies=auth_cookies
+    )
+    assert res_invalid_status.status_code == 422
+
+    res_invalid_bool = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?has_assignee=not_a_bool",
+        cookies=auth_cookies
+    )
+    assert res_invalid_bool.status_code == 422
+
+@pytest.mark.asyncio
+async def test_search_tasks_by_name_and_email(test_client, test_project, test_project_user, auth_cookies, filter_tasks):
+    res_name = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?search=Todo",
+        cookies=auth_cookies
+    )
+    assert res_name.status_code == 200
+    data_name = res_name.json()
+    assert len(data_name["items"]) == 1
+    assert "Todo" in data_name["items"][0]["task_name"]
+
+    email_part = test_project_user.email.split("@")[0]
+    res_email = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?search={email_part}",
+        cookies=auth_cookies
+    )
+    assert res_email.status_code == 200
+    data_email = res_email.json()
+    assert len(data_email["items"]) >= 1
+    assert any(t["email"] == test_project_user.email for t in data_email["items"])
+
+    res_wc = await test_client.get(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/?search=%",
+        cookies=auth_cookies
+    )
+    assert res_wc.status_code == 200
+    assert len(res_wc.json()["items"]) == 0

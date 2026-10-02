@@ -35,10 +35,16 @@
             --sidebar-w: 280px;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            height: 100%;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+        }
         body {
             font-family: 'Inter', -apple-system, sans-serif;
             background: var(--bg); color: var(--text);
-            min-height: 100vh; display: flex; overflow: hidden;
+            display: flex;
             background-image:
                 radial-gradient(ellipse at 10% 0%, rgba(99,102,241,0.06) 0px, transparent 60%),
                 radial-gradient(ellipse at 90% 100%, rgba(139,92,246,0.04) 0px, transparent 60%);
@@ -46,7 +52,7 @@
 
         /* ══ SIDEBAR ══ */
         .sidebar {
-            width: var(--sidebar-w); min-height: 100vh;
+            width: var(--sidebar-w); height: 100%; max-height: 100vh;
             background: var(--surface); border-right: 1px solid var(--border);
             display: flex; flex-direction: column; flex-shrink: 0;
             transition: transform 0.3s;
@@ -62,7 +68,7 @@
         .logo-text { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em; }
         .logo-text span { color: var(--primary); }
 
-        .projects-section { flex: 1; overflow-y: auto; padding: 1.25rem 0.75rem 0.75rem; }
+        .projects-section { flex: 1; overflow-y: auto; padding: 1.25rem 0.75rem 0.75rem; min-height: 0; }
         .projects-section::-webkit-scrollbar { width: 4px; }
         .projects-section::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 2px; }
         .section-label {
@@ -115,7 +121,7 @@
         .profile-card-btn:hover .profile-indicator { color: var(--primary); }
 
         /* ══ MAIN ══ */
-        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+        .main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100%; max-height: 100vh; overflow: hidden; }
         .topbar { padding: 0.875rem 1.75rem; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-shrink: 0; }
         .topbar-left { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
         .topbar h1 { font-size: 1.25rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -143,9 +149,11 @@
         .btn-accent:hover { background: rgba(139,92,246,0.25); }
         .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.75rem; }
 
-        .content { flex: 1; overflow-y: auto; padding: 1.5rem 1.75rem; }
-        .content::-webkit-scrollbar { width: 6px; }
-        .content::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+        .content { flex: 1; min-height: 0; overflow-y: auto; padding: 1.5rem 1.75rem; }
+        .content::-webkit-scrollbar { width: 8px; }
+        .content::-webkit-scrollbar-track { background: rgba(0,0,0,0.15); }
+        .content::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 4px; }
+        .content::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
         /* Tabs for tasks/members/invitations */
         .view-tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); padding: 4px; border-radius: var(--radius-sm); margin-bottom: 1.5rem; }
@@ -203,6 +211,134 @@
         .icon-btn:hover { background: var(--surface-2); color: var(--text); }
         .icon-btn.edit:hover { background: var(--primary-glow); color: var(--primary); border-color: rgba(99,102,241,0.3); }
         .icon-btn.del:hover { background: var(--danger-bg); color: var(--danger); border-color: rgba(239,68,68,0.3); }
+
+        /* ══ PAGINATION CONTROLS ══ */
+        .pagination-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.125rem 0.5rem 0.5rem;
+            margin-top: 1.25rem;
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+            color: var(--text-soft);
+        }
+        .pagination-info {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+        .pagination-total {
+            font-weight: 500;
+            color: var(--text-soft);
+        }
+        .pagination-total strong {
+            color: var(--text);
+        }
+        .pagination-limit-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+        }
+        .pagination-limit-select {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            font-size: 0.78rem;
+            padding: 0.25rem 0.5rem;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .pagination-limit-select:focus, .pagination-limit-select:hover {
+            border-color: var(--border-hover);
+            background: var(--surface-3);
+        }
+        .pagination-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            flex-wrap: wrap;
+        }
+        .pagination-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 0.6rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface-2);
+            color: var(--text-soft);
+            font-size: 0.78rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .pagination-btn:hover:not(:disabled) {
+            background: var(--surface-3);
+            color: var(--text);
+            border-color: var(--border-hover);
+            transform: translateY(-1px);
+        }
+        .pagination-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px var(--primary-glow);
+        }
+        .pagination-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .pagination-ellipsis {
+            padding: 0 0.3rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            user-select: none;
+        }
+
+        /* Sidebar compact pagination */
+        .sidebar-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0.6rem;
+            margin-top: 0.5rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        .sidebar-pagination-btn {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text-soft);
+            border-radius: 6px;
+            padding: 0.2rem 0.45rem;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .sidebar-pagination-btn:hover:not(:disabled) {
+            background: var(--surface-3);
+            color: var(--text);
+        }
+        .sidebar-pagination-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
 
         /* Members Table */
         .members-wrapper { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
@@ -448,6 +584,24 @@
                     <option value="project_name:desc" style="background:var(--surface);color:var(--text);">🔤 Z-A</option>
                 </select>
                 <button onclick="openModal('project-create-modal')" title="New project">＋</button>
+            </div>
+        </div>
+        <div class="sidebar-search-box" style="display:flex;flex-direction:column;gap:6px;margin-bottom:0.75rem;padding:0 2px;">
+            <div style="position:relative;display:flex;align-items:center;">
+                <span style="position:absolute;left:8px;font-size:0.75rem;color:var(--text-muted);pointer-events:none;">🔍</span>
+                <input 
+                    type="text" 
+                    id="project-search-input" 
+                    placeholder="Search projects…" 
+                    oninput="handleProjectSearch(this.value)"
+                    style="width:100%;padding:0.35rem 1.6rem 0.35rem 1.6rem;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.75rem;outline:none;font-family:inherit;"
+                >
+                <button id="project-search-clear" onclick="clearProjectSearch()" style="position:absolute;right:6px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.75rem;display:none;padding:2px;">✕</button>
+            </div>
+            <div class="filter-pills" style="display:flex;gap:4px;">
+                <button class="filter-pill active" id="proj-filter-all" onclick="changeProjectStatusFilter('all')" style="font-size:0.68rem;padding:0.2rem 0.5rem;">All</button>
+                <button class="filter-pill" id="proj-filter-active" onclick="changeProjectStatusFilter('active')" style="font-size:0.68rem;padding:0.2rem 0.5rem;">Active</button>
+                <button class="filter-pill" id="proj-filter-archived" onclick="changeProjectStatusFilter('archived')" style="font-size:0.68rem;padding:0.2rem 0.5rem;">Archived</button>
             </div>
         </div>
         <div class="project-list" id="project-list"></div>
@@ -818,19 +972,68 @@
 const API = '/api/v1';
 let currentUser = null;
 let activeSessions = [];
+
+// Projects state
 let projects = [];
-let selectedProject = null;
-let tasks = [];
-let members = [];
-let userInvitations = [];
-let projectInvitations = [];
-let taskFilter = 'all';
-let activeTab = 'tasks'; // 'tasks' | 'members' | 'invitations'
-let userProviders = []; // ['local', 'google', 'github']
+let projectsPage = 1;
+let projectsLimit = 20;
+let projectsTotalCount = 0;
+let projectsTotalPages = 1;
+let projectsHasNext = false;
+let projectsHasPrev = false;
 let projectSortBy = 'updated_at';
 let projectSortOrder = 'desc';
+let projectStatusFilter = 'all';
+let projectSearchQuery = '';
+let projectSearchDebounce = null;
+let selectedProject = null;
+
+// Tasks state
+let tasks = [];
+let tasksPage = 1;
+let tasksLimit = 20;
+let tasksTotalCount = 0;
+let tasksTotalPages = 1;
+let tasksHasNext = false;
+let tasksHasPrev = false;
 let taskSortBy = 'created_at';
 let taskSortOrder = 'desc';
+let taskFilter = 'all';
+let taskAssigneeFilter = 'all';
+let taskSearchQuery = '';
+let taskSearchDebounce = null;
+
+// Members state
+let members = [];
+let membersPage = 1;
+let membersLimit = 20;
+let membersTotalCount = 0;
+let membersTotalPages = 1;
+let membersHasNext = false;
+let membersHasPrev = false;
+let pickerMembers = [];
+
+// Project Invitations state (Dashboard log for project)
+let projectInvitations = [];
+let projInvPage = 1;
+let projInvLimit = 20;
+let projInvTotalCount = 0;
+let projInvTotalPages = 1;
+let projInvHasNext = false;
+let projInvHasPrev = false;
+let projInvStatusFilter = 'all';
+
+// User Invitations state (Notifications modal for current user)
+let userInvitations = [];
+let userInvPage = 1;
+let userInvLimit = 20;
+let userInvTotalCount = 0;
+let userInvTotalPages = 1;
+let userInvHasNext = false;
+let userInvHasPrev = false;
+
+let activeTab = 'tasks'; // 'tasks' | 'members' | 'invitations'
+let userProviders = []; // ['local', 'google', 'github']
 
 // ══ Cookie helpers ══
 function getCookie(name) {
@@ -897,6 +1100,69 @@ const apiPost = (url, body) => apiFetch(url, { method: 'POST', headers: { 'Conte
 const apiPatch = (url, body) => apiFetch(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: body !== undefined ? JSON.stringify(body) : undefined });
 const apiDel = url => apiFetch(url, { method: 'DELETE' });
 const unwrapItems = res => (Array.isArray(res) ? res : (res?.items ?? []));
+
+// ══ UNIVERSAL PAGINATION COMPONENT ══
+function renderPaginationBar({
+    page,
+    totalPages,
+    totalCount,
+    limit,
+    onPageChangeName,
+    onLimitChangeName,
+    itemLabel = 'items'
+}) {
+    if (!totalCount || totalCount <= 0) return '';
+    
+    totalPages = Math.max(1, totalPages || 1);
+    page = Math.max(1, Math.min(page || 1, totalPages));
+    limit = limit || 20;
+
+    const fromItem = (page - 1) * limit + 1;
+    const toItem = Math.min(page * limit, totalCount);
+
+    const hasPrev = page > 1;
+    const hasNext = page < totalPages;
+
+    const allowedLimits = [5, 10, 20, 50, 100];
+    const limitOptions = allowedLimits.map(l => 
+        `<option value="${l}" ${l === limit ? 'selected' : ''}>${l}</option>`
+    ).join('');
+
+    const pagesToShow = [];
+    for (let p = 1; p <= totalPages; p++) {
+        if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
+            pagesToShow.push(p);
+        }
+    }
+
+    let pageButtonsHtml = '';
+    let lastP = 0;
+    for (const p of pagesToShow) {
+        if (lastP && p - lastP > 1) {
+            pageButtonsHtml += `<span class="pagination-ellipsis">…</span>`;
+        }
+        pageButtonsHtml += `<button class="pagination-btn ${p === page ? 'active' : ''}" onclick="${onPageChangeName}(${p})" title="Page ${p}">${p}</button>`;
+        lastP = p;
+    }
+
+    return `
+    <div class="pagination-bar">
+        <div class="pagination-info">
+            <span class="pagination-total">Showing <strong>${fromItem}–${toItem}</strong> of <strong>${totalCount}</strong> ${itemLabel}</span>
+            <div class="pagination-limit-wrap">
+                <span>Per page:</span>
+                <select class="pagination-limit-select" onchange="${onLimitChangeName}(Number(this.value))" title="Items per page">
+                    ${limitOptions}
+                </select>
+            </div>
+        </div>
+        <div class="pagination-nav">
+            <button class="pagination-btn" ${!hasPrev ? 'disabled' : ''} onclick="${onPageChangeName}(${page - 1})" title="Previous page">« Prev</button>
+            ${pageButtonsHtml}
+            <button class="pagination-btn" ${!hasNext ? 'disabled' : ''} onclick="${onPageChangeName}(${page + 1})" title="Next page">Next »</button>
+        </div>
+    </div>`;
+}
 
 // ══ USER RENDERING ══
 function renderUser(u) {
@@ -1303,29 +1569,65 @@ async function doLogout() {
 }
 
 // ══ NOTIFICATIONS / USER INVITATIONS ══
-async function loadUserInvitations() {
+async function loadUserInvitations(page = userInvPage, limit = userInvLimit) {
     try {
-        userInvitations = unwrapItems(await apiGet(`${API}/projects/invitations/`));
+        const res = await apiGet(`${API}/projects/invitations/?page=${page}&limit=${limit}`);
+        if (res && res.items) {
+            userInvitations = res.items;
+            userInvPage = res.page;
+            userInvLimit = res.limit;
+            userInvTotalCount = res.total_count;
+            userInvTotalPages = res.total_pages;
+            userInvHasNext = res.has_next;
+            userInvHasPrev = res.has_prev;
+        } else {
+            userInvitations = Array.isArray(res) ? res : [];
+            userInvPage = 1;
+            userInvLimit = 20;
+            userInvTotalCount = userInvitations.length;
+            userInvTotalPages = 1;
+            userInvHasNext = false;
+            userInvHasPrev = false;
+        }
     } catch {
         userInvitations = [];
+        userInvTotalCount = 0;
+        userInvTotalPages = 1;
     }
     updateNotificationBadge();
 }
+
+async function changeUserInvitationsPage(p) {
+    userInvPage = p;
+    await loadUserInvitations(userInvPage, userInvLimit);
+    renderNotificationsList();
+}
+
+async function changeUserInvitationsLimit(l) {
+    userInvLimit = l;
+    userInvPage = 1;
+    await loadUserInvitations(userInvPage, userInvLimit);
+    renderNotificationsList();
+}
+
 function updateNotificationBadge() {
     const badge = document.getElementById('notif-badge');
     if (!badge) return;
-    if (userInvitations.length > 0) {
-        badge.textContent = userInvitations.length;
+    if (userInvTotalCount > 0) {
+        badge.textContent = userInvTotalCount;
         badge.style.display = 'inline-flex';
     } else {
         badge.style.display = 'none';
     }
 }
+
 async function openNotificationsModal() {
-    await loadUserInvitations();
+    userInvPage = 1;
+    await loadUserInvitations(userInvPage, userInvLimit);
     renderNotificationsList();
     openModal('notifications-modal');
 }
+
 function renderNotificationsList() {
     const container = document.getElementById('notifications-list');
     if (!container) return;
@@ -1333,7 +1635,7 @@ function renderNotificationsList() {
         container.innerHTML = `<div class="empty-state" style="padding:2rem 1rem;"><div class="empty-icon">🎉</div><h3>No pending invitations</h3><p>You're all caught up!</p></div>`;
         return;
     }
-    container.innerHTML = userInvitations.map(inv => {
+    const cardsHtml = userInvitations.map(inv => {
         const sentDate = inv.sent_at ? new Date(inv.sent_at).toLocaleDateString() : '';
         return `<div class="notif-card">
             <div class="notif-header">
@@ -1349,12 +1651,26 @@ function renderNotificationsList() {
             </div>
         </div>`;
     }).join('');
+
+    const paginationHtml = renderPaginationBar({
+        page: userInvPage,
+        totalPages: userInvTotalPages,
+        totalCount: userInvTotalCount,
+        limit: userInvLimit,
+        onPageChangeName: 'changeUserInvitationsPage',
+        onLimitChangeName: 'changeUserInvitationsLimit',
+        itemLabel: 'invitations'
+    });
+
+    container.innerHTML = cardsHtml + paginationHtml;
 }
+
 async function acceptInvitation(invId) {
     try {
         await apiPatch(`${API}/projects/accept-invitation/${invId}`);
         toast('🎉 Invitation accepted! Welcome to the project.', 'success');
-        await loadUserInvitations();
+        if (userInvitations.length === 1 && userInvPage > 1) userInvPage--;
+        await loadUserInvitations(userInvPage, userInvLimit);
         renderNotificationsList();
         await loadProjects();
         if (userInvitations.length === 0) closeModals();
@@ -1362,11 +1678,13 @@ async function acceptInvitation(invId) {
         toast(e.message, 'error');
     }
 }
+
 async function rejectInvitation(invId) {
     try {
         await apiPatch(`${API}/projects/reject-invitation/${invId}`);
         toast('Invitation declined', 'success');
-        await loadUserInvitations();
+        if (userInvitations.length === 1 && userInvPage > 1) userInvPage--;
+        await loadUserInvitations(userInvPage, userInvLimit);
         renderNotificationsList();
         if (userInvitations.length === 0) closeModals();
     } catch(e) {
@@ -1375,24 +1693,104 @@ async function rejectInvitation(invId) {
 }
 
 // ══ PROJECTS ══
-async function loadProjects() {
-    projects = unwrapItems(await apiGet(`${API}/projects/?sort_by=${projectSortBy}&sort_order=${projectSortOrder}`));
-    renderProjects();
-    if (selectedProject) {
-        const still = projects.find(p => p.project_public_id === selectedProject.project_public_id);
-        if (still) { selectedProject = still; await onProjectSelected(); }
-        else { selectedProject = null; renderWelcome(); }
-    } else { renderWelcome(); }
+async function loadProjects(page = projectsPage, limit = projectsLimit) {
+    try {
+        let url = `${API}/projects/?page=${page}&limit=${limit}&sort_by=${projectSortBy}&sort_order=${projectSortOrder}`;
+        if (projectStatusFilter && projectStatusFilter !== 'all') {
+            url += `&status=${encodeURIComponent(projectStatusFilter)}`;
+        }
+        if (projectSearchQuery) {
+            url += `&search=${encodeURIComponent(projectSearchQuery)}`;
+        }
+        const res = await apiGet(url);
+        if (res && res.items) {
+            projects = res.items;
+            projectsPage = res.page;
+            projectsLimit = res.limit;
+            projectsTotalCount = res.total_count;
+            projectsTotalPages = res.total_pages;
+            projectsHasNext = res.has_next;
+            projectsHasPrev = res.has_prev;
+        } else {
+            projects = Array.isArray(res) ? res : [];
+            projectsPage = 1;
+            projectsLimit = 20;
+            projectsTotalCount = projects.length;
+            projectsTotalPages = 1;
+            projectsHasNext = false;
+            projectsHasPrev = false;
+        }
+        renderProjects();
+        if (selectedProject) {
+            const still = projects.find(p => p.project_public_id === selectedProject.project_public_id);
+            if (still) { selectedProject = still; await onProjectSelected(); }
+            else { await onProjectSelected(); }
+        } else { renderWelcome(); }
+    } catch(e) {
+        projects = [];
+        projectsTotalCount = 0;
+        projectsTotalPages = 1;
+        renderProjects();
+        renderWelcome();
+    }
 }
+
+function handleProjectSearch(val) {
+    const clearBtn = document.getElementById('project-search-clear');
+    if (clearBtn) clearBtn.style.display = val ? 'block' : 'none';
+    clearTimeout(projectSearchDebounce);
+    projectSearchDebounce = setTimeout(async () => {
+        projectSearchQuery = val.trim();
+        projectsPage = 1;
+        await loadProjects(projectsPage, projectsLimit);
+    }, 250);
+}
+
+async function clearProjectSearch() {
+    const input = document.getElementById('project-search-input');
+    if (input) input.value = '';
+    const clearBtn = document.getElementById('project-search-clear');
+    if (clearBtn) clearBtn.style.display = 'none';
+    projectSearchQuery = '';
+    projectsPage = 1;
+    await loadProjects(projectsPage, projectsLimit);
+}
+
+async function changeProjectStatusFilter(status) {
+    projectStatusFilter = status;
+    document.querySelectorAll('[id^="proj-filter-"]').forEach(btn => btn.classList.remove('active'));
+    const btn = document.getElementById(`proj-filter-${status}`);
+    if (btn) btn.classList.add('active');
+    projectsPage = 1;
+    await loadProjects(projectsPage, projectsLimit);
+}
+
 async function changeProjectSort(val) {
     const [by, order] = val.split(':');
     projectSortBy = by;
     projectSortOrder = order;
-    await loadProjects();
+    projectsPage = 1;
+    await loadProjects(projectsPage, projectsLimit);
 }
+
+async function changeProjectsPage(page) {
+    projectsPage = page;
+    await loadProjects(projectsPage, projectsLimit);
+}
+
+async function changeProjectsLimit(limit) {
+    projectsLimit = limit;
+    projectsPage = 1;
+    await loadProjects(projectsPage, projectsLimit);
+}
+
 function renderProjects() {
     const list = document.getElementById('project-list');
-    if (!projects.length) { list.innerHTML = `<div style="padding:1rem 0.5rem;color:var(--text-muted);font-size:0.8rem;text-align:center;">No projects yet.<br>Create your first one! ✨</div>`; return; }
+    if (!projects.length) { 
+        list.innerHTML = `<div style="padding:1rem 0.5rem;color:var(--text-muted);font-size:0.8rem;text-align:center;">${projectSearchQuery || projectStatusFilter !== 'all' ? 'No matching projects found.' : 'No projects yet.<br>Create your first one! ✨'}</div>`; 
+        renderSidebarProjectsPagination();
+        return; 
+    }
     list.innerHTML = projects.map(p => {
         const isActive = selectedProject && selectedProject.project_public_id === p.project_public_id;
         const dotClass = p.status === 'active' ? 'dot-active' : p.status === 'archived' ? 'dot-archived' : 'dot-suspended';
@@ -1402,22 +1800,58 @@ function renderProjects() {
             <span class="project-role role-${p.user_role}">${p.user_role}</span>
         </div>`;
     }).join('');
+    renderSidebarProjectsPagination();
 }
+
+function renderSidebarProjectsPagination() {
+    let container = document.getElementById('sidebar-projects-pagination');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'sidebar-projects-pagination';
+        const sec = document.querySelector('.projects-section');
+        if (sec) sec.appendChild(container);
+    }
+    if (projectsTotalPages <= 1 && projectsTotalCount <= 5) {
+        container.innerHTML = '';
+        return;
+    }
+    const allowed = [5, 10, 20, 50, 100];
+    const opts = allowed.map(l => `<option value="${l}" ${l===projectsLimit?'selected':''}>${l}/p</option>`).join('');
+    container.innerHTML = `
+        <div class="sidebar-pagination">
+            <span>${(projectsPage-1)*projectsLimit + 1}–${Math.min(projectsPage*projectsLimit, projectsTotalCount)} of ${projectsTotalCount}</span>
+            <div style="display:flex;gap:0.25rem;align-items:center;">
+                <select class="sidebar-pagination-btn" onchange="changeProjectsLimit(Number(this.value))" title="Projects per page">
+                    ${opts}
+                </select>
+                <button class="sidebar-pagination-btn" ${!projectsHasPrev?'disabled':''} onclick="changeProjectsPage(${projectsPage-1})">«</button>
+                <span style="font-size:0.7rem;padding:0 2px;">${projectsPage}/${projectsTotalPages}</span>
+                <button class="sidebar-pagination-btn" ${!projectsHasNext?'disabled':''} onclick="changeProjectsPage(${projectsPage+1})">»</button>
+            </div>
+        </div>`;
+}
+
 async function selectProject(pid) {
-    selectedProject = projects.find(p => p.project_public_id === pid);
+    selectedProject = projects.find(p => p.project_public_id === pid) || selectedProject;
     renderProjects();
     activeTab = 'tasks';
+    tasksPage = 1;
+    tasksLimit = 20;
+    membersPage = 1;
+    membersLimit = 20;
+    projInvPage = 1;
+    projInvLimit = 20;
     await onProjectSelected();
     document.getElementById('sidebar').classList.remove('mobile-open');
 }
+
 async function onProjectSelected() {
-    await loadTasks();
-    await loadProjectMembers();
-    if (canManageMembers()) {
-        try { projectInvitations = unwrapItems(await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`)); } catch { projectInvitations = []; }
-    } else {
-        projectInvitations = [];
-    }
+    if (!selectedProject) return;
+    await Promise.all([
+        loadTasks(tasksPage, tasksLimit),
+        loadProjectMembers(membersPage, membersLimit),
+        loadProjectInvitations(projInvPage, projInvLimit)
+    ]);
     renderProjectView();
 }
 function renderWelcome() {
@@ -1508,12 +1942,110 @@ function showProjectCtx(e, pid) {
 function closeCtx() { document.getElementById('ctx-menu').classList.remove('open'); }
 
 // ══ MEMBERS & INVITATIONS ══
-async function loadProjectMembers() {
+async function loadProjectMembers(page = membersPage, limit = membersLimit) {
     if (!selectedProject) return [];
     try {
-        members = unwrapItems(await apiGet(`${API}/projects/members/${selectedProject.project_public_id}`));
-    } catch(e) { members = []; toast(e.message, 'error'); }
+        const res = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}?page=${page}&limit=${limit}`);
+        if (res && res.items) {
+            members = res.items;
+            membersPage = res.page;
+            membersLimit = res.limit;
+            membersTotalCount = res.total_count;
+            membersTotalPages = res.total_pages;
+            membersHasNext = res.has_next;
+            membersHasPrev = res.has_prev;
+        } else {
+            members = Array.isArray(res) ? res : [];
+            membersPage = 1;
+            membersLimit = 20;
+            membersTotalCount = members.length;
+            membersTotalPages = 1;
+            membersHasNext = false;
+            membersHasPrev = false;
+        }
+    } catch(e) { 
+        members = []; 
+        membersTotalCount = 0;
+        membersTotalPages = 1;
+        toast(e.message, 'error'); 
+    }
     return members;
+}
+
+async function changeMembersPage(page) {
+    membersPage = page;
+    await loadProjectMembers(membersPage, membersLimit);
+    renderProjectView();
+}
+
+async function changeMembersLimit(limit) {
+    membersLimit = limit;
+    membersPage = 1;
+    await loadProjectMembers(membersPage, membersLimit);
+    renderProjectView();
+}
+
+async function getMembersForPicker() {
+    if (!selectedProject) return [];
+    try {
+        const res = await apiGet(`${API}/projects/members/${selectedProject.project_public_id}?page=1&limit=100`);
+        return res?.items || (Array.isArray(res) ? res : []);
+    } catch { return []; }
+}
+
+async function loadProjectInvitations(page = projInvPage, limit = projInvLimit) {
+    if (!selectedProject || !canManageMembers()) {
+        projectInvitations = [];
+        projInvTotalCount = 0;
+        projInvTotalPages = 1;
+        return;
+    }
+    try {
+        let url = `${API}/projects/invitations-dashboard/${selectedProject.project_public_id}?page=${page}&limit=${limit}`;
+        if (projInvStatusFilter && projInvStatusFilter !== 'all') {
+            url += `&status=${encodeURIComponent(projInvStatusFilter)}`;
+        }
+        const res = await apiGet(url);
+        if (res && res.items) {
+            projectInvitations = res.items;
+            projInvPage = res.page;
+            projInvLimit = res.limit;
+            projInvTotalCount = res.total_count;
+            projInvTotalPages = res.total_pages;
+            projInvHasNext = res.has_next;
+            projInvHasPrev = res.has_prev;
+        } else {
+            projectInvitations = Array.isArray(res) ? res : [];
+            projInvPage = 1;
+            projInvLimit = 20;
+            projInvTotalCount = projectInvitations.length;
+            projInvTotalPages = 1;
+        }
+    } catch {
+        projectInvitations = [];
+        projInvTotalCount = 0;
+        projInvTotalPages = 1;
+    }
+}
+
+async function changeProjInvStatusFilter(val) {
+    projInvStatusFilter = val;
+    projInvPage = 1;
+    await loadProjectInvitations(projInvPage, projInvLimit);
+    renderProjectView();
+}
+
+async function changeProjectInvitationsPage(page) {
+    projInvPage = page;
+    await loadProjectInvitations(projInvPage, projInvLimit);
+    renderProjectView();
+}
+
+async function changeProjectInvitationsLimit(limit) {
+    projInvLimit = limit;
+    projInvPage = 1;
+    await loadProjectInvitations(projInvPage, projInvLimit);
+    renderProjectView();
 }
 
 function openAddUser() { 
@@ -1525,6 +2057,7 @@ function openAddUser() {
     closeCtx(); 
     openModal('add-user-modal'); 
 }
+
 async function submitAddUser() {
     const email = document.getElementById('invite-email').value.trim();
     const role = document.getElementById('invite-role').value;
@@ -1533,16 +2066,24 @@ async function submitAddUser() {
         await apiPost(`${API}/projects/send-invitation/${selectedProject.project_public_id}`, { email, user_role: role });
         closeModals();
         if (canManageMembers()) {
-            try { projectInvitations = unwrapItems(await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`)); } catch {}
+            await loadProjectInvitations(projInvPage, projInvLimit);
             renderProjectView();
         }
         toast('✉️ Invitation sent successfully!', 'success');
     } catch(e) { toast(e.message, 'error'); }
 }
+
 async function removeMember(uid) {
     if (!confirm('Remove this member from the project?')) return;
-    try { await apiDel(`${API}/projects/delete-member/${selectedProject.project_public_id}/${uid}`); members = await loadProjectMembers(); renderProjectView(); toast('Member removed', 'success'); } catch(e) { toast(e.message, 'error'); }
+    try { 
+        await apiDel(`${API}/projects/delete-member/${selectedProject.project_public_id}/${uid}`); 
+        if (members.length === 1 && membersPage > 1) membersPage--;
+        await loadProjectMembers(membersPage, membersLimit); 
+        renderProjectView(); 
+        toast('Member removed', 'success'); 
+    } catch(e) { toast(e.message, 'error'); }
 }
+
 function openChangeRole(uid, email, currentRole) {
     document.getElementById('change-role-uid').value = uid;
     document.getElementById('change-role-email-display').textContent = `Changing role for: ${email}`;
@@ -1551,26 +2092,44 @@ function openChangeRole(uid, email, currentRole) {
     roleSelect.value = currentRole;
     openModal('change-role-modal');
 }
+
 async function submitChangeRole() {
     const uid = document.getElementById('change-role-uid').value;
     const role = document.getElementById('change-role-value').value;
-    try { await apiPatch(`${API}/projects/change-role/${selectedProject.project_public_id}`, { user_public_id: uid, user_role: role }); closeModals(); members = await loadProjectMembers(); await loadProjects(); renderProjectView(); toast('🔧 Role updated!', 'success'); } catch(e) { toast(e.message, 'error'); }
+    try { 
+        await apiPatch(`${API}/projects/change-role/${selectedProject.project_public_id}`, { user_public_id: uid, user_role: role }); 
+        closeModals(); 
+        await loadProjectMembers(membersPage, membersLimit); 
+        await loadProjects(projectsPage, projectsLimit); 
+        renderProjectView(); 
+        toast('🔧 Role updated!', 'success'); 
+    } catch(e) { toast(e.message, 'error'); }
 }
+
 function openReassignOwner(uid, email) {
     document.getElementById('reassign-owner-uid').value = uid;
     document.getElementById('reassign-owner-display').textContent = `New owner: ${email}`;
     openModal('reassign-owner-modal');
 }
+
 async function submitReassignOwner() {
     const uid = document.getElementById('reassign-owner-uid').value;
-    try { await apiPatch(`${API}/projects/reassign-owner/${selectedProject.project_public_id}/${uid}`); closeModals(); await loadProjects(); toast('👑 Ownership transferred!', 'success'); } catch(e) { toast(e.message, 'error'); }
+    try { 
+        await apiPatch(`${API}/projects/reassign-owner/${selectedProject.project_public_id}/${uid}`); 
+        closeModals(); 
+        await loadProjectMembers(membersPage, membersLimit); 
+        await loadProjects(projectsPage, projectsLimit); 
+        renderProjectView(); 
+        toast('👑 Ownership transferred!', 'success'); 
+    } catch(e) { toast(e.message, 'error'); }
 }
 
 // ══ ASSIGNEE SELECTOR PICKER ══
 function renderAssigneePicker(containerId, hiddenInputId, selectedId = null, filterQuery = '') {
     const container = document.getElementById(containerId);
     if (!container) return;
-    const assignableMembers = members.filter(m => m.user_role !== 'viewer');
+    const source = (pickerMembers && pickerMembers.length) ? pickerMembers : members;
+    const assignableMembers = source.filter(m => m.user_role !== 'viewer');
     const query = filterQuery.toLowerCase().trim();
     const filtered = assignableMembers.filter(m => m.email.toLowerCase().includes(query));
 
@@ -1608,19 +2167,106 @@ function selectAssigneeOption(containerId, hiddenInputId, userId, el) {
 }
 
 // ══ TASKS ══
-async function loadTasks() {
+async function loadTasks(page = tasksPage, limit = tasksLimit) {
     if (!selectedProject) return;
     try { 
-        tasks = unwrapItems(await apiGet(`${API}/projects/${selectedProject.project_public_id}/tasks/?sort_by=${taskSortBy}&sort_order=${taskSortOrder}`)); 
-    } catch(e) { tasks = []; toast(e.message, 'error'); }
+        let url = `${API}/projects/${selectedProject.project_public_id}/tasks/?page=${page}&limit=${limit}&sort_by=${taskSortBy}&sort_order=${taskSortOrder}`;
+        if (taskFilter && taskFilter !== 'all') {
+            url += `&status=${encodeURIComponent(taskFilter)}`;
+        }
+        if (taskAssigneeFilter === 'assigned') {
+            url += `&has_assignee=true`;
+        } else if (taskAssigneeFilter === 'unassigned') {
+            url += `&has_assignee=false`;
+        }
+        if (taskSearchQuery) {
+            url += `&search=${encodeURIComponent(taskSearchQuery)}`;
+        }
+        const res = await apiGet(url); 
+        if (res && res.items) {
+            tasks = res.items;
+            tasksPage = res.page;
+            tasksLimit = res.limit;
+            tasksTotalCount = res.total_count;
+            tasksTotalPages = res.total_pages;
+            tasksHasNext = res.has_next;
+            tasksHasPrev = res.has_prev;
+        } else {
+            tasks = Array.isArray(res) ? res : [];
+            tasksPage = 1;
+            tasksLimit = 20;
+            tasksTotalCount = tasks.length;
+            tasksTotalPages = 1;
+            tasksHasNext = false;
+            tasksHasPrev = false;
+        }
+    } catch(e) { 
+        tasks = []; 
+        tasksTotalCount = 0;
+        tasksTotalPages = 1;
+        toast(e.message, 'error'); 
+    }
 }
+
+function handleTaskSearch(val) {
+    const clearBtn = document.getElementById('task-search-clear');
+    if (clearBtn) clearBtn.style.display = val ? 'block' : 'none';
+    clearTimeout(taskSearchDebounce);
+    taskSearchDebounce = setTimeout(async () => {
+        taskSearchQuery = val.trim();
+        tasksPage = 1;
+        await loadTasks(tasksPage, tasksLimit);
+        renderTasksTab();
+    }, 250);
+}
+
+async function clearTaskSearch() {
+    taskSearchQuery = '';
+    const input = document.getElementById('tasks-search-input');
+    if (input) input.value = '';
+    const clearBtn = document.getElementById('task-search-clear');
+    if (clearBtn) clearBtn.style.display = 'none';
+    tasksPage = 1;
+    await loadTasks(tasksPage, tasksLimit);
+    renderTasksTab();
+}
+
+async function setTaskStatusFilter(f) {
+    taskFilter = f;
+    tasksPage = 1;
+    await loadTasks(tasksPage, tasksLimit);
+    renderTasksTab();
+}
+
+async function changeTaskAssigneeFilter(val) {
+    taskAssigneeFilter = val;
+    tasksPage = 1;
+    await loadTasks(tasksPage, tasksLimit);
+    renderTasksTab();
+}
+
 async function changeTaskSort(val) {
     const [by, order] = val.split(':');
     taskSortBy = by;
     taskSortOrder = order;
-    await loadTasks();
-    renderTasksTab();
+    tasksPage = 1;
+    await loadTasks(tasksPage, tasksLimit);
+    renderProjectView();
 }
+
+async function changeTasksPage(page) {
+    tasksPage = page;
+    await loadTasks(tasksPage, tasksLimit);
+    renderProjectView();
+}
+
+async function changeTasksLimit(limit) {
+    tasksLimit = limit;
+    tasksPage = 1;
+    await loadTasks(tasksPage, tasksLimit);
+    renderProjectView();
+}
+
 function renderProjectView() {
     const p = selectedProject;
     if (!p) return renderWelcome();
@@ -1634,7 +2280,7 @@ function renderProjectView() {
     document.getElementById('topbar-actions').innerHTML = acts.join('');
 
     const content = document.getElementById('content');
-    const total = tasks.length;
+    const total = tasksTotalCount;
     const todoCount = tasks.filter(t => t.status === 'todo').length;
     const inProgressCount = tasks.filter(t => t.status === 'in_progress').length;
     const reviewCount = tasks.filter(t => t.status === 'review').length;
@@ -1651,9 +2297,9 @@ function renderProjectView() {
 
     if (showMemberTab) {
         html += `<div class="view-tabs">
-            <button class="view-tab ${activeTab==='tasks'?'active':''}" onclick="switchViewTab('tasks')">📋 Tasks (${total})</button>
-            <button class="view-tab ${activeTab==='members'?'active':''}" onclick="switchViewTab('members')">👥 Members (${members.length})</button>
-            <button class="view-tab ${activeTab==='invitations'?'active':''}" onclick="switchViewTab('invitations')">✉️ Invitations (${projectInvitations.length})</button>
+            <button class="view-tab ${activeTab==='tasks'?'active':''}" onclick="switchViewTab('tasks')">📋 Tasks (${tasksTotalCount})</button>
+            <button class="view-tab ${activeTab==='members'?'active':''}" onclick="switchViewTab('members')">👥 Members (${membersTotalCount})</button>
+            <button class="view-tab ${activeTab==='invitations'?'active':''}" onclick="switchViewTab('invitations')">✉️ Invitations (${projInvTotalCount})</button>
         </div>`;
     }
 
@@ -1664,10 +2310,15 @@ function renderProjectView() {
     else if (activeTab === 'members') renderMembersTab();
     else if (activeTab === 'invitations') renderInvitationsTab();
 }
+
 async function switchViewTab(tab) {
     activeTab = tab;
-    if (tab === 'invitations' && canManageMembers()) {
-        try { projectInvitations = unwrapItems(await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`)); } catch { projectInvitations = []; }
+    if (tab === 'tasks') {
+        await loadTasks(tasksPage, tasksLimit);
+    } else if (tab === 'members') {
+        await loadProjectMembers(membersPage, membersLimit);
+    } else if (tab === 'invitations' && canManageMembers()) {
+        await loadProjectInvitations(projInvPage, projInvLimit);
     }
     renderProjectView();
 }
@@ -1675,36 +2326,61 @@ async function switchViewTab(tab) {
 function renderTasksTab() {
     const container = document.getElementById('tab-content');
     const labels = { all: 'All Tasks', todo: '⏳ Todo', in_progress: '🔄 In Progress', review: '👁️ In Review', completed: '✅ Completed' };
-    let html = `<div class="content-header"><div class="content-title">${labels[taskFilter]}</div>
-        <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
-            <div class="filter-pills">
-                <button class="filter-pill ${taskFilter==='all'?'active':''}" onclick="setFilter('all')">All</button>
-                <button class="filter-pill ${taskFilter==='todo'?'active':''}" onclick="setFilter('todo')">Todo</button>
-                <button class="filter-pill ${taskFilter==='in_progress'?'active':''}" onclick="setFilter('in_progress')">Progress</button>
-                <button class="filter-pill ${taskFilter==='review'?'active':''}" onclick="setFilter('review')">Review</button>
-                <button class="filter-pill ${taskFilter==='completed'?'active':''}" onclick="setFilter('completed')">Done</button>
+    let html = `<div class="content-header" style="flex-wrap:wrap;gap:0.75rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;flex:1;min-width:280px;">
+            <div style="position:relative;display:flex;align-items:center;min-width:200px;max-width:300px;flex:1;">
+                <span style="position:absolute;left:10px;font-size:0.8rem;color:var(--text-muted);pointer-events:none;">🔍</span>
+                <input 
+                    type="text" 
+                    id="tasks-search-input"
+                    placeholder="Search tasks or assignee…" 
+                    value="${esc(taskSearchQuery)}"
+                    oninput="handleTaskSearch(this.value)"
+                    style="width:100%;padding:0.4rem 1.8rem 0.4rem 2rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:0.78rem;outline:none;font-family:inherit;"
+                >
+                <button id="task-search-clear" onclick="clearTaskSearch()" style="position:absolute;right:8px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.8rem;display:${taskSearchQuery ? 'block' : 'none'};padding:2px;">✕</button>
             </div>
-            <select class="task-sort-select" onchange="changeTaskSort(this.value)" title="Sort tasks" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-soft);font-size:0.75rem;padding:0.25rem 0.5rem;cursor:pointer;outline:none;">
+            <div class="filter-pills">
+                <button class="filter-pill ${taskFilter==='all'?'active':''}" onclick="setTaskStatusFilter('all')">All</button>
+                <button class="filter-pill ${taskFilter==='todo'?'active':''}" onclick="setTaskStatusFilter('todo')">Todo</button>
+                <button class="filter-pill ${taskFilter==='in_progress'?'active':''}" onclick="setTaskStatusFilter('in_progress')">Progress</button>
+                <button class="filter-pill ${taskFilter==='review'?'active':''}" onclick="setTaskStatusFilter('review')">Review</button>
+                <button class="filter-pill ${taskFilter==='completed'?'active':''}" onclick="setTaskStatusFilter('completed')">Done</button>
+            </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+            <select onchange="changeTaskAssigneeFilter(this.value)" title="Filter by assignee" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-soft);font-size:0.75rem;padding:0.35rem 0.5rem;cursor:pointer;outline:none;">
+                <option value="all" ${taskAssigneeFilter==='all'?'selected':''} style="background:var(--surface);color:var(--text);">👥 All assignees</option>
+                <option value="assigned" ${taskAssigneeFilter==='assigned'?'selected':''} style="background:var(--surface);color:var(--text);">👤 Assigned only</option>
+                <option value="unassigned" ${taskAssigneeFilter==='unassigned'?'selected':''} style="background:var(--surface);color:var(--text);">🚫 Unassigned</option>
+            </select>
+            <select class="task-sort-select" onchange="changeTaskSort(this.value)" title="Sort tasks" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-soft);font-size:0.75rem;padding:0.35rem 0.5rem;cursor:pointer;outline:none;">
                 <option value="created_at:desc" ${taskSortBy==='created_at'&&taskSortOrder==='desc'?'selected':''} style="background:var(--surface);color:var(--text);">✨ Newest first</option>
                 <option value="created_at:asc" ${taskSortBy==='created_at'&&taskSortOrder==='asc'?'selected':''} style="background:var(--surface);color:var(--text);">⏳ Oldest first</option>
                 <option value="task_name:asc" ${taskSortBy==='task_name'&&taskSortOrder==='asc'?'selected':''} style="background:var(--surface);color:var(--text);">🔤 Name A-Z</option>
                 <option value="task_name:desc" ${taskSortBy==='task_name'&&taskSortOrder==='desc'?'selected':''} style="background:var(--surface);color:var(--text);">🔤 Name Z-A</option>
             </select>
         </div>
-    </div><div class="tasks-grid" id="tasks-grid"></div>`;
+    </div>
+    <div class="tasks-grid" id="tasks-grid"></div>
+    ${renderPaginationBar({
+        page: tasksPage,
+        totalPages: tasksTotalPages,
+        totalCount: tasksTotalCount,
+        limit: tasksLimit,
+        onPageChangeName: 'changeTasksPage',
+        onLimitChangeName: 'changeTasksLimit',
+        itemLabel: 'tasks'
+    })}`;
     container.innerHTML = html;
     renderTaskCards();
 }
-function setFilter(f) { taskFilter = f; renderTasksTab(); }
-function getFiltered() {
-    if (taskFilter === 'all') return tasks;
-    return tasks.filter(t => t.status === taskFilter);
-}
+
 function renderTaskCards() {
     const grid = document.getElementById('tasks-grid');
     if (!grid) return;
-    const list = getFiltered();
-    if (!list.length) { grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><h3>No tasks here</h3><p>${isEditor() ? 'Create a task or change filter.' : 'No tasks to show.'}</p></div>`; return; }
+    const list = tasks;
+    if (!list.length) { grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><h3>No tasks found</h3><p>${taskSearchQuery || taskFilter !== 'all' || taskAssigneeFilter !== 'all' ? 'Try adjusting your search or filters.' : (isEditor() ? 'Create a task or change filter.' : 'No tasks to show.')}</p></div>`; return; }
     
     grid.innerHTML = list.map(t => {
         const statusMap = {
@@ -1802,10 +2478,20 @@ function renderMembersTab() {
         </tr>`;
     }).join('');
 
+    const paginationHtml = renderPaginationBar({
+        page: membersPage,
+        totalPages: membersTotalPages,
+        totalCount: membersTotalCount,
+        limit: membersLimit,
+        onPageChangeName: 'changeMembersPage',
+        onLimitChangeName: 'changeMembersLimit',
+        itemLabel: 'members'
+    });
+
     container.innerHTML = `<div class="members-wrapper"><table class="members-table">
         <thead><tr><th>Email</th><th>Role</th><th style="text-align:right">Actions</th></tr></thead>
         <tbody>${rows}</tbody>
-    </table></div>`;
+    </table></div>` + paginationHtml;
 }
 
 function renderInvitationsTab() {
@@ -1830,17 +2516,36 @@ function renderInvitationsTab() {
     }).join('');
 
     if (!projectInvitations.length) {
-        rows = `<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--text-muted);">No invitations sent for this project yet.<br><button class="btn btn-primary btn-sm" onclick="openAddUser()" style="margin-top:0.75rem;">✉️ Send First Invitation</button></td></tr>`;
+        rows = `<tr><td colspan="6" style="text-align:center;padding:2.5rem;color:var(--text-muted);">${projInvStatusFilter !== 'all' ? 'No invitations found with status "' + esc(projInvStatusFilter) + '".' : 'No invitations sent for this project yet.<br><button class="btn btn-primary btn-sm" onclick="openAddUser()" style="margin-top:0.75rem;">✉️ Send First Invitation</button>'}</td></tr>`;
     }
 
-    container.innerHTML = `<div class="content-header">
-        <div class="content-title">Project Invitations Log</div>
+    const paginationHtml = renderPaginationBar({
+        page: projInvPage,
+        totalPages: projInvTotalPages,
+        totalCount: projInvTotalCount,
+        limit: projInvLimit,
+        onPageChangeName: 'changeProjectInvitationsPage',
+        onLimitChangeName: 'changeProjectInvitationsLimit',
+        itemLabel: 'invitations'
+    });
+
+    container.innerHTML = `<div class="content-header" style="flex-wrap:wrap;gap:0.75rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+            <div class="content-title">Invitations Log</div>
+            <div class="filter-pills">
+                <button class="filter-pill ${projInvStatusFilter==='all'?'active':''}" onclick="changeProjInvStatusFilter('all')">All</button>
+                <button class="filter-pill ${projInvStatusFilter==='pending'?'active':''}" onclick="changeProjInvStatusFilter('pending')">Pending</button>
+                <button class="filter-pill ${projInvStatusFilter==='accepted'?'active':''}" onclick="changeProjInvStatusFilter('accepted')">Accepted</button>
+                <button class="filter-pill ${projInvStatusFilter==='rejected'?'active':''}" onclick="changeProjInvStatusFilter('rejected')">Declined</button>
+                <button class="filter-pill ${projInvStatusFilter==='revoked'?'active':''}" onclick="changeProjInvStatusFilter('revoked')">Revoked</button>
+            </div>
+        </div>
         <button class="btn btn-primary btn-sm" onclick="openAddUser()">＋ Invite Member</button>
     </div>
     <div class="members-wrapper"><table class="members-table">
         <thead><tr><th>Invited User</th><th>Role</th><th>Sender</th><th>Status</th><th>Sent Date</th><th style="text-align:right">Actions</th></tr></thead>
         <tbody>${rows}</tbody>
-    </table></div>`;
+    </table></div>` + paginationHtml;
 }
 
 async function revokeInvitation(invId) {
@@ -1848,7 +2553,8 @@ async function revokeInvitation(invId) {
     try {
         await apiPatch(`${API}/projects/revoke-invitation/${selectedProject.project_public_id}/${invId}`);
         toast('Invitation revoked', 'success');
-        projectInvitations = unwrapItems(await apiGet(`${API}/projects/invitations-dashboard/${selectedProject.project_public_id}`));
+        if (projectInvitations.length === 1 && projInvPage > 1) projInvPage--;
+        await loadProjectInvitations(projInvPage, projInvLimit);
         renderProjectView();
     } catch(e) {
         toast(e.message, 'error');
@@ -1861,7 +2567,7 @@ async function openCreateTaskModal() {
     document.getElementById('new-task-desc').value = '';
     document.getElementById('new-task-assignee-search').value = '';
     document.getElementById('new-task-assignee-id').value = '';
-    await loadProjectMembers();
+    pickerMembers = await getMembersForPicker();
     renderAssigneePicker('new-task-assignee-list', 'new-task-assignee-id', null, '');
     openModal('task-create-modal');
 }
@@ -1878,7 +2584,7 @@ async function createTask() {
             assignee_id: assigneeId
         });
         closeModals();
-        await loadTasks();
+        await loadTasks(tasksPage, tasksLimit);
         renderProjectView();
         toast('✨ Task created!', 'success');
     } catch(e) { toast(e.message, 'error'); }
@@ -1892,6 +2598,7 @@ function openEditTask(e, tid) {
     document.getElementById('edit-task-desc').value = t.description || '';
     openModal('task-edit-modal');
 }
+
 async function submitEditTask() {
     const tid = document.getElementById('edit-task-id').value;
     const name = document.getElementById('edit-task-name').value.trim();
@@ -1900,17 +2607,19 @@ async function submitEditTask() {
     try {
         await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}`, { task_name: name, description: desc || null });
         closeModals();
-        await loadTasks();
+        await loadTasks(tasksPage, tasksLimit);
         renderProjectView();
         toast('✏️ Task updated!', 'success');
     } catch(e) { toast(e.message, 'error'); }
 }
+
 async function deleteTask(e, tid) {
     e.stopPropagation();
     if (!confirm('Delete this task?')) return;
     try {
         await apiDel(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}`);
-        tasks = tasks.filter(t => t.task_public_id !== tid);
+        if (tasks.length === 1 && tasksPage > 1) tasksPage--;
+        await loadTasks(tasksPage, tasksLimit);
         renderProjectView();
         toast('Task deleted', 'success');
     } catch(e) { toast(e.message, 'error'); }
@@ -1921,7 +2630,7 @@ async function selfAssignTask(e, tid) {
     try {
         await apiPost(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/self-assign`);
         toast('✋ Task assigned to you!', 'success');
-        await loadTasks();
+        await loadTasks(tasksPage, tasksLimit);
         renderProjectView();
     } catch(e) { toast(e.message, 'error'); }
 }
@@ -1932,7 +2641,7 @@ async function openAssignTaskModal(e, tid) {
     document.getElementById('assign-task-search').value = '';
     document.getElementById('assign-task-user-id').value = '';
     const task = tasks.find(t => t.task_public_id === tid);
-    await loadProjectMembers();
+    pickerMembers = await getMembersForPicker();
     renderAssigneePicker('assign-task-list', 'assign-task-user-id', task ? task.assignee_id : null, '');
     openModal('task-assign-modal');
 }
@@ -1949,7 +2658,7 @@ async function submitAssignUser() {
             toast('👤 Assignee updated!', 'success');
         }
         closeModals();
-        await loadTasks();
+        await loadTasks(tasksPage, tasksLimit);
         renderProjectView();
     } catch(e) { toast(e.message, 'error'); }
 }
@@ -1960,7 +2669,7 @@ async function removeTaskAssignee(e, tid) {
     try {
         await apiDel(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/assignee`);
         toast('Assignee removed', 'success');
-        await loadTasks();
+        await loadTasks(tasksPage, tasksLimit);
         renderProjectView();
     } catch(e) { toast(e.message, 'error'); }
 }
@@ -1970,7 +2679,7 @@ async function sendTaskToReview(e, tid) {
     try {
         await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/status/review`);
         toast('📤 Task sent to review', 'success');
-        await loadTasks();
+        await loadTasks(tasksPage, tasksLimit);
         renderProjectView();
     } catch(e) { toast(e.message, 'error'); }
 }
@@ -1980,7 +2689,7 @@ async function cancelTaskReview(e, tid) {
     try {
         await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/status/cancel-review`);
         toast('↩️ Review status cancelled', 'success');
-        await loadTasks();
+        await loadTasks(tasksPage, tasksLimit);
         renderProjectView();
     } catch(e) { toast(e.message, 'error'); }
 }
@@ -1990,7 +2699,7 @@ async function completeTask(e, tid) {
     try {
         await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/status/completed`);
         toast('✅ Task completed!', 'success');
-        await loadTasks();
+        await loadTasks(tasksPage, tasksLimit);
         renderProjectView();
     } catch(e) { toast(e.message, 'error'); }
 }
@@ -2000,13 +2709,13 @@ async function cancelCompletedTask(e, tid) {
     try {
         await apiPatch(`${API}/projects/${selectedProject.project_public_id}/tasks/${tid}/status/cancel-completed`);
         toast('↩️ Task reopened', 'success');
-        await loadTasks();
+        await loadTasks(tasksPage, tasksLimit);
         renderProjectView();
     } catch(e) { toast(e.message, 'error'); }
 }
 
 // ══ UTILS ══
-function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function openModal(id) {
     if (id === 'project-create-modal') { document.getElementById('new-project-name').value = ''; }
     document.getElementById(id).classList.add('open');

@@ -207,3 +207,43 @@ async def test_sort_projects_invalid_params(test_client, auth_cookies):
     res_invalid_order = await test_client.get("/api/v1/projects/?sort_order=invalid_order", cookies=auth_cookies)
     assert res_invalid_order.status_code == 422
 
+@pytest.mark.asyncio
+async def test_filter_projects_by_status(test_client, auth_cookies, filter_projects):
+    res_active = await test_client.get("/api/v1/projects/?status=active", cookies=auth_cookies)
+    assert res_active.status_code == 200
+    data_active = res_active.json()
+    assert len(data_active["items"]) > 0
+    assert all(p["status"] == "active" for p in data_active["items"])
+
+    res_archived = await test_client.get("/api/v1/projects/?status=archived", cookies=auth_cookies)
+    assert res_archived.status_code == 200
+    data_archived = res_archived.json()
+    assert len(data_archived["items"]) > 0
+    assert all(p["status"] == "archived" for p in data_archived["items"])
+
+@pytest.mark.asyncio
+async def test_filter_projects_invalid_status(test_client, auth_cookies):
+    res = await test_client.get("/api/v1/projects/?status=nonexistent_status", cookies=auth_cookies)
+    assert res.status_code == 422
+
+@pytest.mark.asyncio
+async def test_search_projects_by_name(test_client, auth_cookies, filter_projects):
+    res = await test_client.get("/api/v1/projects/?search=Archived", cookies=auth_cookies)
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data["items"]) == 1
+    assert "Archived" in data["items"][0]["project_name"]
+
+    res_ci = await test_client.get("/api/v1/projects/?search=active", cookies=auth_cookies)
+    assert res_ci.status_code == 200
+    data_ci = res_ci.json()
+    assert any("Active" in p["project_name"] for p in data_ci["items"])
+
+    res_wildcard = await test_client.get("/api/v1/projects/?search=%", cookies=auth_cookies)
+    assert res_wildcard.status_code == 200
+    data_wc = res_wildcard.json()
+    assert len(data_wc["items"]) == 0
+
+    res_empty = await test_client.get("/api/v1/projects/?search=   ", cookies=auth_cookies)
+    assert res_empty.status_code == 200
+    assert len(res_empty.json()["items"]) >= 2

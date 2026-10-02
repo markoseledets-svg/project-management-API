@@ -10,6 +10,7 @@ from schemas.invitation_schemas import (
     InvitationNotificationModel
     )
 from schemas.pagination_schemas import PaginationRequest, PaginationResponse
+from schemas.filter_schemas import InvitationFilters
 
 router = APIRouter(tags=["invitations"])
 
@@ -32,12 +33,14 @@ async def get_invitation_dashboard(
     project_public_id:UUID,
     service: InvitationServiceDep,
     pagination_data: PaginationRequest = Depends(),
+    filters: InvitationFilters = Depends(),
     user: UserGetModel = Depends(get_current_user)
     ):
     return await service.get_project_invitation(
         user.public_id,
         project_public_id,
-        pagination_data
+        pagination_data,
+        filters
     )
 
 @router.get("/invitations/", response_model=PaginationResponse[InvitationNotificationModel])

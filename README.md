@@ -236,7 +236,7 @@ alembic downgrade -1
 - [x] Safe hard-deletion with name confirmation
 - [x] Task status processing (`TODO` → `IN_PROGRESS` → `REVIEW` → `COMPLETED`)
 - [x] Task assignees
-- [ ] Pafination, sorting, search
+- [x] Pafination, sorting, search
 #### Infrastructure
 - [ ] Redis caching, 
 - [x] Rate limiting, and session blacklisting

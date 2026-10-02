@@ -311,3 +311,42 @@ async def sort_tasks(test_project):
         assignee_id = None,
         status = TaskStatus.TODO
     )
+
+@pytest.fixture
+async def filter_projects(test_user):
+    p_active = await ProjectFactory.create_async(
+        project_name='Active Project Filter',
+        status=ProjectStatus.ACTIVE
+    )
+    await UserProjectFactory.create_async(
+        user_public_id=test_user.public_id,
+        project_public_id=p_active.project_public_id,
+        user_role=UserRole.OWNER,
+    )
+    p_archived = await ProjectFactory.create_async(
+        project_name='Archived Project Filter',
+        status=ProjectStatus.ARCHIVED
+    )
+    await UserProjectFactory.create_async(
+        user_public_id=test_user.public_id,
+        project_public_id=p_archived.project_public_id,
+        user_role=UserRole.OWNER,
+    )
+    return p_active, p_archived
+
+@pytest.fixture
+async def filter_tasks(test_project, test_project_user):
+    t_todo = await TaskFactory.create_async(
+        task_name='Todo Task Filter',
+        project_public_id=test_project.project_public_id,
+        assignee_id=None,
+        status=TaskStatus.TODO
+    )
+    t_in_progress = await TaskFactory.create_async(
+        task_name='In Progress Task Filter',
+        project_public_id=test_project.project_public_id,
+        assignee_id=test_project_user.public_id,
+        status=TaskStatus.IN_PROGRESS
+    )
+    return t_todo, t_in_progress
+

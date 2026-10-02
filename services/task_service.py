@@ -4,12 +4,13 @@ import uuid
 from repository.tasks_repo import TasksRepository
 from repository.projects_repo import UserProjectRepository
 from database.db_model import TaskModel,UserRole, TaskStatus
-from schemas.task_schemas import PostTaskModel, UpdateTaskModel,GetTaskModel
+from schemas.task_schemas import PostTaskModel, UpdateTaskModel, GetTaskModel, TaskWithAssigneeModel
 from typing import Optional,List
 from core.exceptions import NotFoundError, ForbiddenError, ConflictError
 from services.permission_check import PermissionService
 from schemas.pagination_schemas import PaginationResponse, PaginationRequest
 from schemas.sort_schemas import SortOrder, TaskSortField
+from schemas.filter_schemas import  TaskFilters
 
 class TaskService:
     def __init__(
@@ -56,8 +57,9 @@ class TaskService:
                                     project_public_id:uuid.UUID,
                                     pagination_data: PaginationRequest,
                                     sort_by: TaskSortField,
-                                    sort_order: SortOrder
-                                    )-> Optional[List[GetTaskModel]]:
+                                    sort_order: SortOrder,
+                                    filters: TaskFilters
+                                    )-> PaginationResponse[TaskWithAssigneeModel]:
         await self.permission_service.verify_user_role(
                                     curr_user_id,
                                     project_public_id,
@@ -69,14 +71,15 @@ class TaskService:
                                                    ),
                                     check_active=False
                                     )
-        total_count = await self.task_repo.count_tasks(project_public_id)
+        total_count = await self.task_repo.count_tasks(project_public_id, filters)
         if total_count > 0:
             tasks_data = await self.task_repo.get_user_tasks_request(
                 project_public_id,
                 pagination_data.page,
                 pagination_data.limit,
                 sort_by,
-                sort_order
+                sort_order,
+                filters
                 )
         else:
             tasks_data = []

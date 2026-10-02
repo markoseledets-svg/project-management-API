@@ -97,4 +97,31 @@ async def test_accept_accepted_invitation(test_client, project_user_cookies, tes
     )
     assert accept_accepted_response.status_code == 409
 
+@pytest.mark.asyncio
+async def test_filter_invitations_by_status(test_client, test_project, auth_cookies, test_invitation):
+    res_pending = await test_client.get(
+        f"/api/v1/projects/invitations-dashboard/{test_project.project_public_id}?status=pending",
+        cookies=auth_cookies
+    )
+    assert res_pending.status_code == 200
+    data_pending = res_pending.json()
+    assert len(data_pending["items"]) > 0
+    assert all(i["status"] == "pending" for i in data_pending["items"])
+
+    res_accepted = await test_client.get(
+        f"/api/v1/projects/invitations-dashboard/{test_project.project_public_id}?status=accepted",
+        cookies=auth_cookies
+    )
+    assert res_accepted.status_code == 200
+    data_accepted = res_accepted.json()
+    assert data_accepted["total_count"] == 0
+    assert len(data_accepted["items"]) == 0
+
+@pytest.mark.asyncio
+async def test_filter_invitations_invalid_status(test_client, test_project, auth_cookies):
+    res = await test_client.get(
+        f"/api/v1/projects/invitations-dashboard/{test_project.project_public_id}?status=invalid_status",
+        cookies=auth_cookies
+    )
+    assert res.status_code == 422
     

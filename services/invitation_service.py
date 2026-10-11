@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from uuid6 import UUID
-from typing import List
+from redis.asyncio import Redis
 
 from repository.invitation_repo import InvitationRepository
 from repository.user_repo import UserRepository
@@ -14,15 +14,16 @@ from schemas.pagination_schemas import PaginationRequest, PaginationResponse
 from database.db_model import UserRole, InvitationModel, InvitationStatus
 from core.exceptions import NotFoundError, ConflictError, GoneError
 from schemas.filter_schemas import InvitationFilters
-
+from services.redis_services import RedisServices
 class InvitationService:
-    def __init__(self, session:AsyncSession):
+    def __init__(self, session:AsyncSession, redis_client: Redis):
         self.session = session
         self.invitation_repo = InvitationRepository(session)
-        self.permission_service = PermissionService(session)
+        self.permission_service = PermissionService(session, redis_client)
         self.user_repo = UserRepository(session)
         self.user_project_repo = UserProjectRepository(session)
-        self.project_service = ProjectService(session)
+        self.project_service = ProjectService(session, redis_client)
+        self.redis_client = RedisServices(redis_client)
 
     async def get_user_invitations(
         self, 
@@ -150,6 +151,7 @@ class InvitationService:
                 user_public_id,
                 invitation_data.user_role
             )
+            await self.redis_client.bump_version(f'project_members_ver:{invitation_data.project_public_id}')
             await self.session.commit()
         except IntegrityError:
             await self.session.rollback()

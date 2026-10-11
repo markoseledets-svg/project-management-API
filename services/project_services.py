@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid6 import uuid7, UUID
-from pydantic import ValidationError
+from redis.asyncio import Redis
 
 from repository.projects_repo import ProjectsRepository, UserProjectRepository
 from repository.user_repo import UserRepository
@@ -12,23 +12,26 @@ from schemas.project_schemas import (
     GetUserDataWithRole,
     UpdateUserRole,
     )
-from typing import Optional, List
+from typing import Optional
 from core.exceptions import NotFoundError, GoneError, ConflictError, ForbiddenError, DataValidationError
 from services.permission_check import PermissionService
 from schemas.pagination_schemas import PaginationRequest, PaginationResponse
 from schemas.sort_schemas import ProjectSortField, SortOrder
 from schemas.filter_schemas import ProjectFilters
+from services.redis_services import RedisServices
 
 class ProjectService:
     def __init__(
             self,
             session: AsyncSession,
+            redis_client: Redis
             ):
         self.session = session
         self.project_repo = ProjectsRepository(session)
         self.user_repo = UserRepository(session)
-        self.permission_service = PermissionService(session)
+        self.permission_service = PermissionService(session, redis_client)
         self.user_project_repo = UserProjectRepository(session)
+        self.redis_client = RedisServices(redis_client)
 
     async def add_new_project(
             self, 
@@ -118,6 +121,7 @@ class ProjectService:
         project.status = ProjectStatus.ARCHIVED
         await self.session.commit()
         await self.session.refresh(project)
+        await self.redis_client.invalidate_cache(f"project_status:{project_public_id}")
         return project
     
     async def change_project_status(
@@ -138,6 +142,7 @@ class ProjectService:
             project.status = project_status
             await self.session.commit()
             await self.session.refresh(project)
+            await self.redis_client.invalidate_cache(f'project_status:{project_public_id}')
             return project
 
     def add_user_to_project(
@@ -164,20 +169,29 @@ class ProjectService:
             allowed_roles=(UserRole.OWNER, UserRole.ADMIN),
             check_active=False
         )
-        total_count = await self.user_project_repo.count_project_users(project_public_id)
-        if total_count > 0:
-            members_data = await self.user_project_repo.get_user_data_with_roles(
-                project_public_id,
+        ver = await self.redis_client.get_version(f'project_members_ver:{project_public_id}')
+        async def _load_members_from_db():
+            total_count = await self.user_project_repo.count_project_users(project_public_id)
+            if total_count > 0:
+                members_data = await self.user_project_repo.get_user_data_with_roles(
+                    project_public_id,
+                    page=pagination_data.page,
+                    limit=pagination_data.limit
+                )
+                members_data = [GetUserDataWithRole.model_validate(m) for m in members_data]
+            else:
+                members_data = []
+            return PaginationResponse.create(
+                items=members_data,
+                total_count=total_count,
                 page=pagination_data.page,
                 limit=pagination_data.limit
             )
-        else:
-            members_data = []
-        return PaginationResponse.create(
-            items=members_data,
-            total_count=total_count,
-            page=pagination_data.page,
-            limit=pagination_data.limit
+        return await self.redis_client.get_or_set_cache(
+            f'project_members:{project_public_id}:v{ver}:{pagination_data.page}:{pagination_data.limit}',
+            PaginationResponse[GetUserDataWithRole],
+            _load_members_from_db,
+            900
         )
 
     async def delete_user_from_project(
@@ -202,6 +216,8 @@ class ProjectService:
         self.permission_service.verify_user_hierarchy(user_role, relation_data.user_role)
         await self.user_project_repo.delete(relation_data)
         await self.session.commit()
+        await self.redis_client.invalidate_cache(f'user_role:{target_user_public_id}:{project_public_id}')
+        await self.redis_client.bump_version(f'project_members_ver:{project_public_id}')
 
     async def change_user_role(
                                 self,
@@ -225,7 +241,9 @@ class ProjectService:
             new_role_data.user_role
         )
         relation_data.user_role = new_role_data.user_role
+        await self.redis_client.invalidate_cache(f'user_role:{new_role_data.user_public_id}:{project_public_id}')
         await self.session.commit()
+        await self.redis_client.bump_version(f'project_members_ver:{project_public_id}')
         
     async def leave_from_project(
                                  self,
@@ -243,10 +261,16 @@ class ProjectService:
             if not project:
                 raise NotFoundError()
             await self.project_repo.delete(project)
-            await self.session.commit() 
+            await self.session.commit()
+            await self.redis_client.invalidate_cache(
+                f"user_role:{user_public_id}:{project_public_id}"
+                f'project_status:{project_public_id}'
+                )
             return
         await self.session.delete(relation_data)
         await self.session.commit() 
+        await self.redis_client.invalidate_cache(f"user_role:{user_public_id}:{project_public_id}")
+        await self.redis_client.bump_version(f'project_members_ver:{project_public_id}')
 
     async def assign_new_owner(
         self,
@@ -272,7 +296,12 @@ class ProjectService:
         curr_user_relation_data.user_role = UserRole.ADMIN
         await self.session.flush()
         target_user_relation_data.user_role = UserRole.OWNER
+        await self.redis_client.invalidate_cache(
+            f"user_role:{user_public_id}:{project_public_id}",
+            f"user_role:{target_user_id}:{project_public_id}"
+            )
         await self.session.commit()
+        await self.redis_client.bump_version(f'project_members_ver:{project_public_id}')
     
     async def verify_and_delete_project(
                                         self,
@@ -293,6 +322,9 @@ class ProjectService:
             raise DataValidationError()
         if project.status != ProjectStatus.ARCHIVED:
             raise ConflictError(detail="Project should be archived before deletion!")
+        await self.redis_client.invalidate_cache(f"project_status:{project_public_id}")
         await self.project_repo.delete(project)
         await self.session.commit()
+        await self.redis_client.bump_version(f'project_members_ver:{project_public_id}')
+
         

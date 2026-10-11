@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
+from redis.asyncio import Redis
 
 from repository.tasks_repo import TasksRepository
 from repository.projects_repo import UserProjectRepository
@@ -16,10 +17,11 @@ class TaskService:
     def __init__(
             self,
             session: AsyncSession,
+            redis_client: Redis
             ):
         self.session = session
         self.task_repo = TasksRepository(session)
-        self.permission_service = PermissionService(session)
+        self.permission_service = PermissionService(session, redis_client)
         self.user_project_repo = UserProjectRepository(session)
     
     async def add_new_task(

@@ -259,7 +259,14 @@ class AuthServices:
         is_family_banned = await self.redis_client.check_banned_tokens(user_data['token_family_id'])
         if is_family_banned:
             raise AuthFailedError()
-        user = await self.user_repo.get_user_by_id(user_data["user_public_id"])
+        async def _load_user_from_db():
+            return await self.user_repo.get_user_by_id(user_data['user_public_id'])
+        user = await self.redis_client.get_or_set_cache(
+            f'user:{user_data['user_public_id']}',
+            UserGetModel,
+            _load_user_from_db,
+            1800
+            )
         if not user:
             raise AuthFailedError()
         return user
@@ -335,6 +342,7 @@ class AuthServices:
         if not user:
             raise AuthFailedError()
         user.deletes_at = datetime.now(timezone.utc) + timedelta(days=14)
+        await self.redis_client.invalidate_cache(f'user:{user.public_id}')
         await self.logout_everywhere(access_token, refresh_token)
 
     async def verify_user_restore(self, restore_token: str) -> None:

@@ -79,8 +79,9 @@ class ProjectsRepository(BaseRepository[ProjectModel]):
         return project_list
     
     async def get_status_by_id(self, project_public_id:  UUID):
-        return await self.get_columns_by('status', project_public_id=project_public_id)
-
+        row = await self.get_columns_by('status', project_public_id=project_public_id)
+        return row['status'] if row else None
+        
     async def count_users_projects(self, user_public_id: UUID, filters: ProjectFilters) -> int:
         predicates = self._build_predicates(user_public_id, filters)
         stmt = (

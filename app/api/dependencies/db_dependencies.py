@@ -18,19 +18,14 @@ async def get_db():
 AnotatedSession = Annotated[AsyncSession, Depends(get_db)]
 
 def get_service(service_class: Type[Any]) -> Callable:
-    def factory(db: AnotatedSession) -> Any: 
-        return service_class(db)
+    def factory(db: AnotatedSession, redis: RedisClient) -> Any: 
+        return service_class(db, redis)
     return factory
 
 TaskServiceDep = Annotated[TaskService, Depends(get_service(TaskService))]
 ProjectServiceDep = Annotated[ProjectService, Depends(get_service(ProjectService))]
 InvitationServiceDep = Annotated[InvitationService, Depends(get_service(InvitationService))]
-
-def get_auth_service(db:AnotatedSession, redis:RedisClient):
-    return AuthServices(db, redis)
-
-
-AuthServiceDep = Annotated[AuthServices, Depends(get_auth_service)]
+AuthServiceDep = Annotated[AuthServices, Depends(get_service(AuthServices))]
 
 async def get_current_user(
     request: Request,

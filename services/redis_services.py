@@ -1,10 +1,17 @@
 import redis.asyncio as redis
-from typing import Optional
+from redis.exceptions import RedisError
+from typing import Optional, Callable, TypeVar, Awaitable, Type
+from pydantic import TypeAdapter, ValidationError
 import time
 import json
+import random
+from functools import lru_cache
 
 from core.exceptions import ToManyRequestsError, AuthFailedError
 from schemas.login_schemas import TokenResponseModel
+from utils.logger import logger
+
+T = TypeVar('T') 
 
 class RedisServices:
     def __init__ (self, redis_client:redis.Redis):
@@ -84,3 +91,69 @@ class RedisServices:
         if user_data:
             return json.loads(user_data)
         return None
+    
+    @staticmethod
+    @lru_cache(maxsize=None)
+    def _adapter(tp:type) -> TypeAdapter:
+        return TypeAdapter(tp)
+    
+    async def get_or_set_cache(
+        self,
+        key: str,
+        tp:Type[T],
+        db_loader: Callable[[], Awaitable[T]],
+        cache_ttl: int,
+        ) -> T:
+        cache_key = f'cache:{key}' if not key.startswith('cache:') else key
+        adapter = self._adapter(tp)
+        try:
+            data = await self.redis_client.get(cache_key)
+        except RedisError:
+            logger.error(f'Cache read redis error', exc_info=True)
+            return await db_loader()
+        if data is not None:
+            try:
+                return adapter.validate_json(data)
+            except ValidationError:
+                await self.redis_client.delete(cache_key)
+                logger.warning('Cache validation error', exc_info=True)
+        data = await db_loader()
+        if data is None:
+            return data
+        try:
+            jitter = random.randint(0, cache_ttl//10)
+            await self.redis_client.set(cache_key, adapter.dump_json(data), ex=cache_ttl + jitter)
+        except RedisError:
+            logger.error('Cache set redis error', exc_info=True)
+        return data
+    
+    async def invalidate_cache(
+        self,
+        *keys: str
+        ) -> None:
+        try:
+            if keys:
+                formatted_keys = [f'cache:{k}' if not k.startswith('cache:') else k for k in keys]
+                await self.redis_client.delete(*formatted_keys)
+        except RedisError as exc:
+            logger.error('Cache invalidation redis error', exc_info=True)
+    
+    async def bump_version(self, key: str) -> None:
+        try:
+            formated_key = key if key.startswith('cache:') else f'cache:{key}'
+            pipe = self.redis_client.pipeline()
+            pipe.incr(formated_key)
+            pipe.expire(formated_key, 259200, nx=True)
+            await pipe.execute()
+        except RedisError:
+            logger.error('Cache version bump error', exc_info=True)
+
+    async def get_version(self, key:str) -> int:
+        try:
+            formated_key = key if key.startswith('cache:') else f'cache:{key}'
+            ver = await self.redis_client.get(formated_key)
+            return int(ver) if ver else 0
+        except RedisError:
+            logger.error('Cache version get error', exc_info=True)
+        return 0
+    

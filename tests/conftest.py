@@ -6,6 +6,7 @@ from httpx import AsyncClient, ASGITransport
 from fakeredis import FakeAsyncRedis
 from unittest.mock import patch, AsyncMock, MagicMock
 from datetime import datetime, timedelta, timezone
+from redis import RedisError
 
 from core.security import generate_access_jwt, generate_refresh_jwt, hash_data, generate_restore_jwt
 from tests.factories.base import BaseFactory
@@ -17,6 +18,9 @@ from database.db_model import Base, UserRole, InvitationStatus, ProjectStatus, T
 from app.api.dependencies.db_dependencies import get_db
 from app.api.dependencies.redis_dependencies import get_redis
 from app.main import app
+from services.redis_services import RedisServices
+from schemas.login_schemas import UserGetModel
+
 load_dotenv()
 
 DB_URL = os.getenv("TEST_DATABASE_URL")
@@ -350,3 +354,30 @@ async def filter_tasks(test_project, test_project_user):
     )
     return t_todo, t_in_progress
 
+@pytest.fixture
+async def test_redis_services(fake_redis):
+    test_services = RedisServices(fake_redis)
+    return test_services
+
+@pytest.fixture
+async def mock_loader(test_user):
+    user = UserGetModel(email=test_user.email, public_id=test_user.public_id)
+    loader = AsyncMock(return_value=user)
+    return loader
+
+@pytest.fixture
+async def user_cache(test_user, mock_loader, test_redis_services: RedisServices):
+    return await test_redis_services.get_or_set_cache(
+        f'user:{test_user.public_id}',
+        UserGetModel,
+        mock_loader,
+        900
+    )
+
+@pytest.fixture
+def redis_error(fake_redis):
+    with (
+        patch.object(fake_redis, 'get', side_effect=RedisError("Redis down")),
+        patch.object(fake_redis, 'set', side_effect=RedisError("Redis down"))
+        ):
+        yield

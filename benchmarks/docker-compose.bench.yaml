@@ -1,0 +1,27 @@
+# Usage: docker compose -f docker-compose.yaml -f benchmarks/docker-compose.bench.yaml up -d bench_db api
+# Runs the API against a dedicated, disposable benchmark database (never the main DB).
+services:
+  bench_db:
+    container_name: ProjectBenchDB
+    image: postgres:17-alpine
+    command: postgres -c shared_preload_libraries=pg_stat_statements
+    environment:
+      POSTGRES_USER: bench
+      POSTGRES_PASSWORD: bench
+      POSTGRES_DB: bench_db
+    ports:
+      - "127.0.0.1:5434:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U bench -d bench_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    environment:
+      DATABASE_URL: postgresql+asyncpg://bench:bench@bench_db:5432/bench_db
+      ENABLE_CACHING: ${ENABLE_CACHING:-true}
+      ENABLE_GLOBAL_RATE_LIMIT: ${ENABLE_GLOBAL_RATE_LIMIT:-false}
+    depends_on:
+      bench_db:
+        condition: service_healthy

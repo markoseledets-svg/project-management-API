@@ -1,0 +1,10 @@
+-r requirements.txt
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+pytest-xdist>=3.5.0
+fakeredis==2.36.2
+polyfactory==3.3.0
+locust>=2.20.0
+Faker>=24.0.0
+ruff>=0.6.0
+pip-audit>=2.7.0

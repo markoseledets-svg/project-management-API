@@ -5,8 +5,7 @@ import uuid6
 from datetime import datetime, timedelta, timezone
 from authlib.integrations.base_client import OAuthError
 
-from database.db_model import RegistrationIdentity
-from tests.factories.users import RAW_PASSWORD, RefreshFactory, AuthIdentityFactory
+from tests.factories.users import RAW_PASSWORD, RefreshFactory
 from core.security import generate_access_jwt, generate_refresh_jwt
 
 @pytest.mark.asyncio
@@ -512,3 +511,13 @@ async def test_github_callback_error(test_client, mock_github_oauth):
     assert "oauth_error" in response.cookies
 
 
+
+
+async def test_request_without_client_address_rejected(test_engine, fake_redis):
+    from httpx import AsyncClient, ASGITransport
+    from app.main import app
+    app.state.redis = fake_redis
+    transport = ASGITransport(app=app, client=None)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.post("/api/v1/auth/", data={"username": "a@b.com", "password": "Password123!"})
+    assert resp.status_code == 400

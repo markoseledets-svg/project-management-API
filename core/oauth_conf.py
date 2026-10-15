@@ -1,13 +1,10 @@
 from authlib.integrations.starlette_client import OAuth
-from dotenv import load_dotenv
-import os
+from core.config import settings
 
-load_dotenv()
-
-GOOGLE_CLIENT_ID=os.getenv('GOOGLE_CLIENT_ID')
-GOOGLE_CLIENT_SECRET=os.getenv('GOOGLE_CLIENT_SECRET')
-GITHUB_CLIENT_ID=os.getenv('GITHUB_CLIENT_ID')
-GITHUB_CLIENT_SECRET=os.getenv('GITHUB_CLIENT_SECRET')
+GOOGLE_CLIENT_ID = settings.google_client_id
+GOOGLE_CLIENT_SECRET = settings.google_client_secret
+GITHUB_CLIENT_ID = settings.github_client_id
+GITHUB_CLIENT_SECRET = settings.github_client_secret
 
 oauth = OAuth()
 oauth.register(

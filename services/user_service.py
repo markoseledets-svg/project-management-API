@@ -225,7 +225,7 @@ class AuthServices:
         )
         if not token_record:
             raise AuthFailedError()
-        if token_record.is_used == True:
+        if token_record.is_used:
             is_retry_token_data = await self.redis_client.check_refresh_for_retries(user_refresh_token)
             if is_retry_token_data:
                 return TokenResponseModel(**is_retry_token_data)
@@ -326,7 +326,7 @@ class AuthServices:
 
     async def logout_session(self, user_public_id: uuid6.UUID, token_public_id: uuid6.UUID) -> None:
         token_record = await self.refresh_repo.get_current_token_record(user_public_id, token_public_id)
-        if not token_record or token_record.is_used == True:
+        if not token_record or token_record.is_used:
             raise NotFoundError()
         token_record.is_used = True
         await self.redis_client.save_banned_access_token(token_record.family_id, time.time() + 900)
@@ -342,8 +342,8 @@ class AuthServices:
         if not user:
             raise AuthFailedError()
         user.deletes_at = datetime.now(timezone.utc) + timedelta(days=14)
-        await self.redis_client.invalidate_cache(f'user:{user.public_id}')
         await self.logout_everywhere(access_token, refresh_token)
+        await self.redis_client.invalidate_cache(f'user:{user.public_id}')
 
     async def verify_user_restore(self, restore_token: str) -> None:
         is_banned = await self.redis_client.check_banned_tokens(restore_token)
@@ -451,11 +451,11 @@ class AuthServices:
 
     def _get_email(self, form_data:List[dict]) -> str:
         user_email = next((user_data['email'] for user_data in form_data 
-            if user_data.get('primary')==True and user_data.get('verified')==True), None)
+            if user_data.get('primary') and user_data.get('verified')), None)
         if user_email:
            return user_email
         user_email = next((user_data['email'] for user_data in form_data 
-            if user_data.get('verified')==True), None)
+            if user_data.get('verified')), None)
         if user_email:
             return user_email
         raise AuthFailedError(detail='No verified email address associated with this GitHub account')

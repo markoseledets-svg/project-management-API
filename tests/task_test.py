@@ -31,7 +31,7 @@ async def test_get_user_tasks(test_client, test_project, auth_cookies, test_task
     response_data = get_tasks_response.json()
     assert isinstance(response_data['items'], list)
     assert len(response_data['items']) > 0
-    assert response_data['has_prev'] == response_data['has_next'] == False
+    assert not response_data['has_prev'] and not response_data['has_next']
 
 @pytest.mark.asyncio
 async def test_get_tasks_pagination_response(test_client, test_project, auth_cookies, test_task):
@@ -174,7 +174,7 @@ async def test_self_assign_already_taken(test_client, test_project, auth_cookies
         f"/api/v1/projects/{test_task_assignee.project_public_id}/tasks/{test_task_assignee.task_public_id}/self-assign",
         cookies=auth_cookies
     )
-    assert resp.status_code == 403
+    assert resp.status_code == 409
 
 @pytest.mark.asyncio
 async def test_sort_tasks_by_name(test_client, test_project, auth_cookies, sort_tasks):
@@ -300,3 +300,11 @@ async def test_search_tasks_by_name_and_email(test_client, test_project, test_pr
     )
     assert res_wc.status_code == 200
     assert len(res_wc.json()["items"]) == 0
+
+@pytest.mark.asyncio
+async def test_self_assign_missing_task_returns_404(test_client, test_project, auth_cookies):
+    resp = await test_client.post(
+        f"/api/v1/projects/{test_project.project_public_id}/tasks/{uuid6.uuid7()}/self-assign",
+        cookies=auth_cookies
+    )
+    assert resp.status_code == 404

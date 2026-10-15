@@ -1,18 +1,16 @@
 import smtplib
 import os
 from enum import Enum
-from dotenv import load_dotenv
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from core.config import settings
 from utils.logger import logger
 
-load_dotenv()
-
-SMTP_KEY = os.getenv("SMTP_KEY")
-SMTP_LOGIN = os.getenv("SMTP_LOGIN")
-SMTP_PORT = os.getenv("SMTP_PORT")
-SMTP_SERVER = os.getenv("SMTP_SERVER")
+SMTP_KEY = settings.smtp_key
+SMTP_LOGIN = settings.smtp_login
+SMTP_PORT = settings.smtp_port
+SMTP_SERVER = settings.smtp_server
 
 _TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "..", "templates", "email.html")
 
@@ -59,7 +57,7 @@ def send_email(
     cfg = _EMAIL_CONFIG[email_type]
     msg = MIMEMultipart("alternative")
     msg["Subject"] = cfg["subject"]
-    msg["From"] = SMTP_LOGIN
+    msg["From"] = settings.email_sender or SMTP_LOGIN
     msg["To"] = user_email
     msg.attach(MIMEText(f"Your one-time code: {otp}", "plain"))
     msg.attach(MIMEText(_build_html(otp, email_type), "html"))

@@ -151,8 +151,8 @@ class InvitationService:
                 user_public_id,
                 invitation_data.user_role
             )
-            await self.redis_client.bump_version(f'project_members_ver:{invitation_data.project_public_id}')
             await self.session.commit()
+            await self.redis_client.bump_version(f'project_members_ver:{invitation_data.project_public_id}')
         except IntegrityError:
             await self.session.rollback()
             raise ConflictError(detail="User already is member of this project!")

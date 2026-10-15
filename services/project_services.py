@@ -4,7 +4,7 @@ from redis.asyncio import Redis
 
 from repository.projects_repo import ProjectsRepository, UserProjectRepository
 from repository.user_repo import UserRepository
-from database.db_model import UserProjectRelation, UserRole, ProjectModel, ProjectStatus
+from database.db_model import UserRole, ProjectModel, ProjectStatus
 from schemas.project_schemas import (
     ProjectWithRoleGetModel, 
     ProjectPostModel, 
@@ -241,8 +241,8 @@ class ProjectService:
             new_role_data.user_role
         )
         relation_data.user_role = new_role_data.user_role
-        await self.redis_client.invalidate_cache(f'user_role:{new_role_data.user_public_id}:{project_public_id}')
         await self.session.commit()
+        await self.redis_client.invalidate_cache(f'user_role:{new_role_data.user_public_id}:{project_public_id}')
         await self.redis_client.bump_version(f'project_members_ver:{project_public_id}')
         
     async def leave_from_project(
@@ -263,7 +263,7 @@ class ProjectService:
             await self.project_repo.delete(project)
             await self.session.commit()
             await self.redis_client.invalidate_cache(
-                f"user_role:{user_public_id}:{project_public_id}"
+                f"user_role:{user_public_id}:{project_public_id}",
                 f'project_status:{project_public_id}'
                 )
             return
@@ -296,11 +296,11 @@ class ProjectService:
         curr_user_relation_data.user_role = UserRole.ADMIN
         await self.session.flush()
         target_user_relation_data.user_role = UserRole.OWNER
+        await self.session.commit()
         await self.redis_client.invalidate_cache(
             f"user_role:{user_public_id}:{project_public_id}",
             f"user_role:{target_user_id}:{project_public_id}"
             )
-        await self.session.commit()
         await self.redis_client.bump_version(f'project_members_ver:{project_public_id}')
     
     async def verify_and_delete_project(
@@ -322,9 +322,9 @@ class ProjectService:
             raise DataValidationError()
         if project.status != ProjectStatus.ARCHIVED:
             raise ConflictError(detail="Project should be archived before deletion!")
-        await self.redis_client.invalidate_cache(f"project_status:{project_public_id}")
         await self.project_repo.delete(project)
         await self.session.commit()
+        await self.redis_client.invalidate_cache(f"project_status:{project_public_id}")
         await self.redis_client.bump_version(f'project_members_ver:{project_public_id}')
 
         

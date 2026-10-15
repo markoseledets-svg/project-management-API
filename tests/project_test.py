@@ -20,7 +20,7 @@ async def test_get_projects(test_client, auth_cookies, test_project):
     assert get_response.status_code == 200
     response_data = get_response.json()
     assert len(response_data['items']) > 0
-    assert response_data['has_prev'] == response_data['has_next'] == False
+    assert not response_data['has_prev'] and not response_data['has_next']
 
 @pytest.mark.asyncio
 async def test_get_pagination_response(test_client, auth_cookies):
@@ -43,7 +43,7 @@ async def test_get_empty_pagination_response(test_client, auth_cookies):
     assert get_response.status_code == 200
     response_data = get_response.json()
     assert isinstance(response_data['items'], list)
-    assert response_data['has_prev'] == response_data['has_next'] == False
+    assert not response_data['has_prev'] and not response_data['has_next']
 
 @pytest.mark.asyncio
 async def test_invalid_pagination_params(test_client, auth_cookies):

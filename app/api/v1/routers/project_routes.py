@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Body
-from typing import List, Annotated
+from typing import Annotated
 import uuid
 
 from database.db_model import ProjectStatus
@@ -9,7 +9,6 @@ from schemas.project_schemas import (
     ProjectPostModel, 
     ProjectGetModel, 
     ProjectUpdateModel, 
-    PostNewRelation,
     GetUserDataWithRole,
     UpdateUserRole,
     )

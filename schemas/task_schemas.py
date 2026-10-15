@@ -1,7 +1,7 @@
 from pydantic import BaseModel, model_validator, Field, ConfigDict, EmailStr
 import uuid
 
-from database.db_model import UserRole, TaskStatus
+from database.db_model import TaskStatus
 
 class BaseTaskModel(BaseModel):
     task_name: str = Field(min_length=1, max_length=255)

@@ -20,19 +20,19 @@ async def test_get_project_invites(test_client, test_project, auth_cookies):
     data = invitations_response.json()
     assert isinstance(data['items'], list)
     assert data['page'] == 1
-    assert data['has_prev'] == data['has_next'] == False
+    assert not data['has_prev'] and not data['has_next']
 
 @pytest.mark.asyncio
 async def test_get_user_invites(test_client, project_user_cookies):
     invitations_response = await test_client.get(
-        f"/api/v1/projects/invitations/",
+        "/api/v1/projects/invitations/",
         cookies=project_user_cookies
     )
     assert invitations_response.status_code == 200
     data = invitations_response.json()
     assert isinstance(data['items'], list)
     assert data['page'] == 1
-    assert data['has_prev'] == data['has_next'] == False
+    assert not data['has_prev'] and not data['has_next']
 
 @pytest.mark.asyncio
 async def test_invalid_invitation_pagination_params(test_client, test_project, auth_cookies, project_user_cookies):

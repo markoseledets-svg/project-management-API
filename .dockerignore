@@ -1,0 +1,11 @@
+.env
+.git
+.github
+app.log
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+benchmarks/reports/
+benchmarks/sessions.json
+tests/

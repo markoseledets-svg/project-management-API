@@ -1,4 +1,3 @@
-from utils.logger import logger
 
 class AppBaseError(Exception):
     def __init__(self, status_code:int,detail:str):
@@ -28,6 +27,10 @@ class DataValidationError(AppBaseError):
 class GoneError(AppBaseError):
     def __init__(self, status_code=410, detail="Resource is not available!"):
         super().__init__(status_code, detail)
-class ToManyRequestsError(AppBaseError):
+class TooManyRequestsError(AppBaseError):
     def __init__(self, status_code=429, detail="Too many requests!"):
+        super().__init__(status_code, detail)
+
+class BadRequestError(AppBaseError):
+    def __init__(self, status_code=400, detail='Bad request'):
         super().__init__(status_code, detail)

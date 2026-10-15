@@ -61,20 +61,23 @@ A modern, full-featured REST API for project and task management with role-based
 .
 ├── app/
 │   ├── main.py                 # FastAPI application factory, middleware, exception handlers
+│   ├── middleware/             # Custom middlewares (e.g. GlobalRateLimitMiddleware)
 │   └── api/
 │       ├── dependencies/       # Dependency Injection (DB session, Redis, rate limiting, auth)
 │       └── v1/
 │           ├── router.py       # API router aggregator
 │           └── routers/        # auth, projects, tasks, frontend routes
+├── benchmarks/                 # Performance & load testing scripts (Locust, seed scripts)
 ├── core/
+│   ├── config.py               # Pydantic Settings configuration (env parsing, validation)
 │   ├── exceptions.py           # Custom API exceptions & error handlers
 │   ├── oauth_conf.py           # OAuth client configuration (Google, GitHub)
-│   ├── security.py             # JWT token handling, hashing, cookie helpers
-│   └── rate_limiter.py
+│   └── security.py             # JWT token handling, hashing, cookie helpers
 ├── database/
 │   ├── db_config.py            # Async engine, connection pool configuration
 │   ├── redis_config.py         # Redis connection pool
 │   └── db_model.py             # SQLAlchemy ORM models (User, AuthIdentity, RefreshToken, Project, Task, Invitation)
+├── jobs/                       # Background scheduled cleanup jobs (APScheduler)
 ├── repository/                 # Repository layer (DB queries and transactions)
 ├── services/                   # Business logic layer (Auth, Project, Task, Email, Redis)
 ├── schemas/                    # Pydantic schemas (requests, responses, validation)
@@ -85,14 +88,18 @@ A modern, full-featured REST API for project and task management with role-based
 │   ├── auth_test.py            # Authentication, session, OAuth, and password tests
 │   ├── project_test.py         # Project CRUD and permissions tests
 │   ├── task_test.py            # Task workflow and assignment tests
-│   └── invitation_test.py      # Project invitation tests
+│   ├── invitation_test.py      # Project invitation tests
+│   ├── cache_test.py           # Cache and versioning tests
+│   └── cleanup_test.py         # Background cleanup jobs tests
 ├── utils/
 │   ├── logger.py               # Application logger
 │   └── user_agent_parser.py    # Device / Browser parser for active sessions
 ├── alembic/                    # Database migrations
 ├── docker-compose.yaml         # Multi-container setup (API, Migrate, DB, Test DB, Redis)
+├── docker-compose.dev.yaml      # Local dev override (bind mount); use: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up
 ├── Dockerfile
-└── requirements.txt
+├── requirements.txt            # Production dependencies
+└── requirements-dev.txt        # Development and testing dependencies (pytest, ruff, locust, etc.)
 ```
 
 ---
@@ -150,7 +157,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 The test suite uses **Pytest** with **Polyfactory** and **FakeRedis** against an isolated PostgreSQL test database with transaction rollback after each test.
 
 ```bash
-# Run all 75 tests
+# Run the full test suite
 pytest
 
 # Run tests with output details
@@ -192,6 +199,9 @@ pytest tests/invitation_test.py
 | `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 Client Secret | `YOUR_GOOGLE_SECRET` |
 | `GITHUB_CLIENT_ID` | GitHub OAuth App Client ID | `your_github_clientid` |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth App Client Secret | `YOUR_GITHUB_SECRET` |
+| `CORS_ORIGINS` | Allowed CORS origins (JSON array) | `["http://localhost", "http://localhost:8000"]` |
+| `ENABLE_CACHING` | Toggle Redis caching for user profiles, roles, and project members (task lists are uncached) | `true` / `false` |
+| `ENABLE_GLOBAL_RATE_LIMIT` | Toggle global rate limiting middleware | `true` / `false` |
 | `TEST_DATABASE_URL` | Isolated test DB connection | `postgresql+asyncpg://...` |
 
 Generate secret keys:
@@ -201,6 +211,32 @@ python -c "import secrets; print(secrets.token_urlsafe(64))"
 
 ---
 
+## Benchmarks & Performance
+
+Load tests (Locust) compare the API with Redis caching **enabled vs disabled**, count real SQL calls per request (`pg_stat_statements`) and verify that permission changes are never served stale from cache. Benchmarks run against a **dedicated disposable database** (`ProjectBenchDB`), never the main or test DB. Detailed methodology, execution notes, and full breakdown: [benchmarks/README.md](benchmarks/README.md).
+
+### Cache ON vs Cache OFF (200–250 Concurrent Users, 95k+ requests)
+
+| Metric | Cache ON (Redis) | Cache OFF (PostgreSQL only) | Impact |
+|---|:---:|:---:|:---:|
+| **Throughput (RPS)** | **144.4 req/s** | 123.9 req/s | **+16.5% higher throughput** |
+| **p50 Latency (Median)** | **22.0 ms** | 180.0 ms | **8.2× faster (88% reduction)** |
+| **p95 Tail Latency** | **120.0 ms** | 880.0 ms | **7.3× faster** |
+| **SQL Calls / Request** | **3.25** | 7.93 | **-59% database offloading** |
+| **User Profile (`GET /users/me`)** | **11 ms (p50)** | 110 ms (p50) | **10.0× faster** |
+| **Project Members (`GET /members`)** | **19 ms (p50)** | 190 ms (p50) | **10.0× faster** |
+| **Task Creation (`POST /task`)** | **62 ms (p50)** | 210 ms (p50) | **3.4× faster** (DB pool freed from reads) |
+
+### What is cached?
+- **User profile:** `cache:user:{public_id}` (TTL 1800s, invalidated on account deletion)
+- **User role in project:** `cache:user_role:{user_id}:{project_id}` (TTL 900s, invalidated on role change / removal / leave / ownership transfer)
+- **Project status:** `cache:project_status:{project_id}` (TTL 900s, invalidated on status change / archive / delete)
+- **Members list:** `cache:project_members:{pid}:v{ver}:{page}:{limit}` (version-bumped on membership changes)
+- **Task lists are NOT cached** (always read directly from PostgreSQL).
+
+Cache is invalidated **after** the DB commit, so a concurrent reader can never re-cache pre-commit data. Permission changes take effect instantly.
+
+---
 ## Database Migrations
 
 ```bash
@@ -236,13 +272,14 @@ alembic downgrade -1
 - [x] Safe hard-deletion with name confirmation
 - [x] Task status processing (`TODO` → `IN_PROGRESS` → `REVIEW` → `COMPLETED`)
 - [x] Task assignees
-- [x] Pafination, sorting, search
+- [x] Pagination, sorting, search
+
 #### Infrastructure
-- [ ] Redis caching, 
+- [x] Redis caching with version-based cache invalidation
 - [x] Rate limiting, and session blacklisting
-- [x] Full automated test suite (75 unit & integration tests)
+- [x] Full automated test suite (unit, integration & benchmark tests)
 - [x] Background workers for automated expired token & soft-deleted account cleanup
-- [x] Production CI/CD pipeline 
+- [x] Production CI/CD pipeline (Ruff linting, tests, security audits)
 - [ ] Cloud deployment
 
 

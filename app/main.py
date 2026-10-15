@@ -3,11 +3,10 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import SQLAlchemyError
 from contextlib import asynccontextmanager
-from dotenv import load_dotenv
-import os
+from core.config import settings
+
 from redis.exceptions import RedisError
 from starlette.middleware.sessions import SessionMiddleware
-import json
 
 from database.db_config import engine
 from database.redis_config import redis_client
@@ -18,11 +17,8 @@ from core.exceptions import AppBaseError
 from app.middleware.global_rate_limit import GlobalRateLimitMiddleware
 from jobs.scheduler import start_cleanup, stop_cleanup
 
-load_dotenv()
-
-IS_PRODUCTION = os.getenv("ENV") == "production"
-raw_cors = os.getenv("CORS_ORIGINS")
-CORS_ORIGINS = json.loads(raw_cors) if raw_cors else []
+IS_PRODUCTION = settings.is_production
+CORS_ORIGINS = settings.cors_origins
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -50,7 +46,7 @@ app.add_middleware(
 
 app.add_middleware(
     SessionMiddleware,
-    secret_key=os.getenv('SESSION_SECRET_KEY')
+    secret_key=settings.session_secret_key
 )
 
 app.add_middleware(
@@ -91,6 +87,10 @@ async def http_errors_handler(request: Request, exc: AppBaseError):
         status_code = exc.status_code,
         content = {"detail":exc.detail}
     )
+
+@app.get("/health", tags=["Health"])
+async def health_check():
+    return {"status": "ok"}
 
 app.include_router(frontend_routes.router)
 app.include_router(router.router_v1)

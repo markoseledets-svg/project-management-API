@@ -1,11 +1,11 @@
 from sqlalchemy.sql.elements import UnaryExpression
-from sqlalchemy import select, or_, func
+from sqlalchemy import select, or_, func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 import uuid
 
 from typing import List,Optional
 from repository.base_repo import BaseRepository
-from database.db_model import TaskModel, UserModel
+from database.db_model import TaskModel, UserModel, TaskStatus
 from schemas.task_schemas import GetTaskModel, TaskWithAssigneeModel
 from schemas.sort_schemas import SortOrder, TaskSortField
 from schemas.filter_schemas import TaskFilters
@@ -100,4 +100,22 @@ class TasksRepository(BaseRepository[TaskModel]):
             .where(*predicates)
             )
         return (await self.session.scalar(stmt)) or 0
-        
+    
+    async def task_self_assign_update(
+        self,
+        assignee_id: uuid.UUID,
+        task_public_id: uuid.UUID,
+        project_public_id: uuid.UUID
+        ) -> Optional[TaskModel]:
+        stmt = (
+            update(TaskModel)
+            .where(
+                TaskModel.task_public_id == task_public_id,
+                TaskModel.project_public_id == project_public_id,
+                TaskModel.assignee_id.is_(None), 
+                TaskModel.status == TaskStatus.TODO
+                )
+            .values(assignee_id=assignee_id, status=TaskStatus.IN_PROGRESS)
+            .returning(TaskModel)
+            )
+        return (await self.session.execute(stmt)).scalar_one_or_none()

@@ -14,7 +14,7 @@ class UserFactory(BaseFactory):
     
     @classmethod
     def email(cls) -> str:
-        return cls.__faker__.safe_email()
+        return f"user_{cls.__faker__.uuid4()[:12]}@example.com"
 
 class RefreshFactory(BaseFactory):
     __model__ = RefreshTokenModel

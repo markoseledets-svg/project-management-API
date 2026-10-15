@@ -1,5 +1,3 @@
-import os
-from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 import pytest
 from httpx import AsyncClient, ASGITransport
@@ -8,7 +6,8 @@ from unittest.mock import patch, AsyncMock, MagicMock
 from datetime import datetime, timedelta, timezone
 from redis import RedisError
 
-from core.security import generate_access_jwt, generate_refresh_jwt, hash_data, generate_restore_jwt
+from core.config import settings
+from core.security import generate_access_jwt, generate_refresh_jwt, hash_data
 from tests.factories.base import BaseFactory
 from tests.factories.users import UserFactory, RefreshFactory, AuthIdentityFactory, RAW_PASSWORD
 from tests.factories.invitations import InvitationFactory
@@ -21,9 +20,12 @@ from app.main import app
 from services.redis_services import RedisServices
 from schemas.login_schemas import UserGetModel
 
-load_dotenv()
-
-DB_URL = os.getenv("TEST_DATABASE_URL")
+DB_URL = settings.test_database_url
+if not DB_URL:
+    raise RuntimeError("TEST_DATABASE_URL is not set")
+if DB_URL == settings.database_url:
+    raise RuntimeError("TEST_DATABASE_URL must differ from DATABASE_URL: tests run drop_all()")
+settings.enable_caching = True
 
 @pytest.fixture(scope='session')
 async def fake_redis():
@@ -70,7 +72,7 @@ async def test_client(test_engine, fake_redis, db_session):
         yield db_session
 
     app.dependency_overrides[get_db] = get_test_db
-    transport = ASGITransport(app=app)
+    transport = ASGITransport(app=app, client=('127.0.0.1', 12345))
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()

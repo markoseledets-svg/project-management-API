@@ -6,3 +6,8 @@ app.log
 .vscode/
 venv/
 .pytest_cache/
+benchmarks/sessions.json
+results/
+benchmarks/reports/*
+!benchmarks/reports/summary.py
+.ruff_cache

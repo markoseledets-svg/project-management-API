@@ -1,6 +1,5 @@
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends
 import uuid
-from typing import List
 
 from schemas.task_schemas import PostTaskModel,UpdateTaskModel, TaskWithAssigneeModel, GetTaskModel
 from schemas.login_schemas import UserGetModel

@@ -1,20 +1,16 @@
 from fastapi import Response
 from passlib.context import CryptContext
 from datetime import datetime , timedelta, timezone
-import os
-from dotenv import load_dotenv
 import jwt
 import uuid6
-
+from core.config import settings
 from core.exceptions import AuthFailedError
 
-load_dotenv()
-
-ACCESS_SECRET_KEY = os.getenv("ACCESS_SECRET_KEY")
-REFRESH_SECRET_KEY = os.getenv("REFRESH_SECRET_KEY")
-RESTORE_SECRET_KEY = os.getenv("RESTORE_SECRET_KEY")
-HASHING_ALGO  = os.getenv("ALGORITHM")
-IS_PRODUCTION = os.getenv("ENV") == "production"
+ACCESS_SECRET_KEY = settings.access_secret_key
+REFRESH_SECRET_KEY = settings.refresh_secret_key
+RESTORE_SECRET_KEY = settings.restore_secret_key
+HASHING_ALGO = settings.algorithm
+IS_PRODUCTION = settings.is_production
 
 #hashing logic
 hashing = CryptContext(schemes=["bcrypt"])
@@ -88,7 +84,7 @@ def decode_jwt(token:str, secret_key) -> dict:
         raise AuthFailedError()
 
 
-def decode_access_token(token: str) -> uuid6.UUID:
+def decode_access_token(token: str) -> dict:
     payload = decode_jwt(token, ACCESS_SECRET_KEY)
     user_public_id = payload.get("sub")
     token_exp = payload.get("exp")

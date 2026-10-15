@@ -15,10 +15,10 @@ async def get_db():
     async with AsyncSession(engine, expire_on_commit=False) as session:
         yield session
 
-AnotatedSession = Annotated[AsyncSession, Depends(get_db)]
+AnnotatedSession = Annotated[AsyncSession, Depends(get_db)]
 
 def get_service(service_class: Type[Any]) -> Callable:
-    def factory(db: AnotatedSession, redis: RedisClient) -> Any: 
+    def factory(db: AnnotatedSession, redis: RedisClient) -> Any: 
         return service_class(db, redis)
     return factory
 

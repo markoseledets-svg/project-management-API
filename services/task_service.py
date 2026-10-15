@@ -5,8 +5,8 @@ from redis.asyncio import Redis
 from repository.tasks_repo import TasksRepository
 from repository.projects_repo import UserProjectRepository
 from database.db_model import TaskModel,UserRole, TaskStatus
-from schemas.task_schemas import PostTaskModel, UpdateTaskModel, GetTaskModel, TaskWithAssigneeModel
-from typing import Optional,List
+from schemas.task_schemas import PostTaskModel, UpdateTaskModel, TaskWithAssigneeModel
+from typing import Optional
 from core.exceptions import NotFoundError, ForbiddenError, ConflictError
 from services.permission_check import PermissionService
 from schemas.pagination_schemas import PaginationResponse, PaginationRequest
@@ -258,14 +258,14 @@ class TaskService:
             project_public_id,
             allowed_roles=(UserRole.OWNER, UserRole.ADMIN, UserRole.EDITOR,)
         )
-        task = await self.get_task_by_id(
+        task = await self.task_repo.task_self_assign_update(
+            user_public_id,
             task_public_id,
             project_public_id
         )
-        if task.status != TaskStatus.TODO or task.assignee_id is not None:
-            raise ForbiddenError(detail="Task is already assigned to someone else!")
-        task.assignee_id = user_public_id
-        task.status = TaskStatus.IN_PROGRESS
+        if not task:
+            await self.get_task_by_id(task_public_id, project_public_id)  # 404 if task does not exist
+            raise ConflictError(detail='Task is already assigned to someone else!')
         await self.session.commit()
         return task
     

@@ -116,6 +116,7 @@ class UserProjectRepository(BaseRepository[UserProjectRelation]):
             UserProjectRelation, 
             and_(UserModel.public_id == UserProjectRelation.user_public_id,
             UserProjectRelation.project_public_id == project_public_id))
+            .order_by(UserModel.public_id)
             .limit(limit)
             .offset((page - 1) * limit)
             )

@@ -3,11 +3,12 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 import redis.asyncio as redis
+from core.config import settings
 from core.security import decode_access_token
-from core.exceptions import ToManyRequestsError
+from core.exceptions import TooManyRequestsError
 from services.redis_services import RedisServices
 
-EXCLUDE_PATHS = {"/docs", "/redoc", "/openapi.json"}
+EXCLUDE_PATHS = {"/docs", "/redoc", "/openapi.json", "/health"}
 
 class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
     
@@ -16,7 +17,7 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
         self.fallback_client = client
 
     async def dispatch(self, request: Request, call_next):
-        if request.url.path in EXCLUDE_PATHS or request.url.path.startswith('/api/v1/auth'):
+        if not settings.enable_global_rate_limit or request.url.path in EXCLUDE_PATHS or request.url.path.startswith('/api/v1/auth'):
             return await call_next(request)
         token = request.cookies.get('access_token')
         rate_key = None
@@ -28,8 +29,9 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
             except Exception:
                 pass
         if not rate_key:
-            client_host = request.client.host if request.client else "127.0.0.1"
-            rate_key = request.headers.get("x-forwarded-for", client_host).split(",")[0].strip()
+            if not request.client or not request.client.host:
+                return JSONResponse(status_code=400, content={"detail": "Cannot determine client address"})
+            rate_key = request.client.host
 
         redis_client = getattr(request.app.state, "redis", None) or self.fallback_client
         if not redis_client:
@@ -39,7 +41,7 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
 
         try:
             await redis_services.rate_limiter(rate_key, 'global', 60, 100)
-        except ToManyRequestsError as e:
+        except TooManyRequestsError as e:
             return JSONResponse(
                 status_code=e.status_code,
                 content={'detail': e.detail},

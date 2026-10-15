@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends
 from uuid import UUID
-from typing import List
 
 from app.api.dependencies.db_dependencies import InvitationServiceDep, get_current_user
 from schemas.login_schemas import UserGetModel

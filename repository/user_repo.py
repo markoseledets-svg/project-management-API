@@ -68,7 +68,7 @@ class RefreshRepository(BaseRepository[RefreshTokenModel]):
             select(RefreshTokenModel.family_id)
             .where(
                 RefreshTokenModel.user_public_id == user_public_id,
-                RefreshTokenModel.is_used == False
+                RefreshTokenModel.is_used.is_(False)
                 )   
         )
         return family_ids.scalars().all()
@@ -76,7 +76,7 @@ class RefreshRepository(BaseRepository[RefreshTokenModel]):
     async def invalidate_user_tokens(self, user_public_id: uuid6.UUID) -> None:
         await self.session.execute(
             update(RefreshTokenModel)
-            .where(RefreshTokenModel.is_used == False, RefreshTokenModel.user_public_id == user_public_id)
+            .where(RefreshTokenModel.is_used.is_(False), RefreshTokenModel.user_public_id == user_public_id)
             .values(is_used=True)
         )
 
@@ -88,7 +88,7 @@ class RefreshRepository(BaseRepository[RefreshTokenModel]):
                 )
             .where(
                 RefreshTokenModel.user_public_id == user_public_id, 
-                RefreshTokenModel.is_used == False,
+                RefreshTokenModel.is_used.is_(False),
                 RefreshTokenModel.expired_at > datetime.now(timezone.utc)
                 )
             )
